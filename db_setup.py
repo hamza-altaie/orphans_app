@@ -1,12 +1,33 @@
 # db_setup.py
 import sqlite3
+import os
 
-DB_NAME = "orphans.db"
+# اسم مجلد بيانات البرنامج داخل مجلد المستخدم
+APP_DIR_NAME = "OrphansApp"
+
+
+def get_data_dir() -> str:
+    """
+    يرجّع مسار مجلد بيانات البرنامج داخل مجلد المستخدم.
+    مثال:
+    C:\\Users\\اسمك\\AppData\\Roaming\\OrphansApp
+    """
+    base = os.getenv("APPDATA") or os.path.expanduser("~")
+    data_dir = os.path.join(base, APP_DIR_NAME)
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
+# المسار الكامل لقاعدة البيانات
+DB_NAME = os.path.join(get_data_dir(), "orphans.db")
 
 
 def create_tables(conn: sqlite3.Connection):
     """إنشاء الجداول إذا لم تكن موجودة"""
     cursor = conn.cursor()
+
+    # تفعيل الـ FOREIGN KEY في SQLite
+    cursor.execute("PRAGMA foreign_keys = ON;")
 
     # جدول الأيتام
     cursor.execute(

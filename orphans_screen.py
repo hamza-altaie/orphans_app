@@ -1,9 +1,9 @@
 # orphans_screen.py
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import sqlite3
 from typing import Optional, Tuple
-from tkcalendar import DateEntry
+from ttkbootstrap.widgets import DateEntry
 
 # قائمة محافظات العراق
 GOVERNORATES = [
@@ -56,31 +56,39 @@ class OrphansScreen(ttk.Frame):
         self.var_sponsorship_status = tk.StringVar(value="فعّالة")
         self.var_sponsorship_start = tk.StringVar()
 
+        # متغيرات الفلترة / البحث
+        self.filter_name = tk.StringVar()
+        self.filter_governorate = tk.StringVar()
+        self.filter_status = tk.StringVar()
+
         self.create_widgets()
         self.load_orphans()
 
     # ==========================
-    #   دوال مساعدة لمحاذاة Text
+    #   دوال مساعدة
     # ==========================
     def _apply_right_tag(self, text_widget: tk.Text):
         """محاذاة النص في Text لليمين باستخدام tag (بدل justify)."""
         text_widget.tag_configure("right", justify="right")
         text_widget.tag_add("right", "1.0", "end")
 
-    # ======== دوال التحقق من الأرقام ========
+    def _fmt_amount(self, value) -> str:
+        """تنسيق مبلغ (للمبلغ الشهري عند التصدير)."""
+        if value is None:
+            return "0"
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return str(value)
+        if v.is_integer():
+            return str(int(v))
+        return f"{v:.2f}"
+    
+
     def _validate_int(self, value: str) -> bool:
-        """السماح فقط بأرقام صحيحة أو فراغ."""
+        """السماح فقط بأرقام صحيحة أو فراغ في حقل العمر."""
         return value == "" or value.isdigit()
 
-    def _validate_float(self, value: str) -> bool:
-        """السماح فقط بأرقام عشرية أو فراغ."""
-        if value == "":
-            return True
-        try:
-            float(value)
-            return True
-        except ValueError:
-            return False
 
     # ==========================
     #   الواجهة
@@ -89,15 +97,86 @@ class OrphansScreen(ttk.Frame):
     def create_widgets(self):
         """إنشاء الواجهات (الجدول + الفورم)"""
 
+        # أوامر تحقق للأرقام (مثلاً للعمر)
+        vcmd_int = (self.register(self._validate_int), "%P")
+
         # ستايل للـ Treeview
         style = ttk.Style(self)
         style.configure("Orphans.Treeview", rowheight=28)
 
         # ====== يسار: قائمة الأيتام ======
         table_frame = ttk.LabelFrame(
-            self, text="قائمة الأيتام", padding=5, labelanchor="ne"
+            self, text="قائمة الأيتام", padding=5, labelanchor="ne", style="Card.TLabelframe"
         )
         table_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+
+        # ----- شريط البحث والفلترة فوق الجدول -----
+        search_frame = ttk.Frame(table_frame)
+        search_frame.pack(fill="x", padx=5, pady=(0, 5))
+
+        search_frame.columnconfigure(0, weight=1)
+
+        # بحث بالاسم
+        ttk.Label(search_frame, text="بحث بالاسم (يحتوي على):\u200f").grid(
+            row=0, column=3, sticky="e", padx=3, pady=2
+        )
+        entry_search_name = ttk.Entry(
+            search_frame,
+            textvariable=self.filter_name,
+            width=20,
+            justify="right",
+        )
+        entry_search_name.grid(row=0, column=2, sticky="e", padx=3, pady=2)
+
+        # المحافظة
+        ttk.Label(search_frame, text="المحافظة:\u200f").grid(
+            row=1, column=3, sticky="e", padx=3, pady=2
+        )
+        combo_filter_gov = ttk.Combobox(
+            search_frame,
+            textvariable=self.filter_governorate,
+            values=GOVERNORATES,
+            width=18,
+            state="readonly",
+            justify="right",
+        )
+        combo_filter_gov.grid(row=1, column=2, sticky="e", padx=3, pady=2)
+        combo_filter_gov.current(0)
+
+        # حالة اليتيم
+        ttk.Label(search_frame, text="حالة اليتيم:\u200f").grid(
+            row=1, column=1, sticky="e", padx=3, pady=2
+        )
+        combo_filter_status = ttk.Combobox(
+            search_frame,
+            textvariable=self.filter_status,
+            values=["", "فعّال", "موقوف", "منسحب"],
+            width=14,
+            state="readonly",
+            justify="right",
+        )
+        combo_filter_status.grid(row=1, column=0, sticky="e", padx=3, pady=2)
+        combo_filter_status.current(0)
+
+        # أزرار الفلترة
+        btn_apply_filter = ttk.Button(
+            search_frame,
+            text="تطبيق الفلترة",
+            width=15,
+            command=self.apply_filters,
+        )
+        btn_apply_filter.grid(row=0, column=0, sticky="w", padx=3, pady=2)
+
+        btn_clear_filter = ttk.Button(
+            search_frame,
+            text="مسح الفلترة",
+            width=15,
+            command=self.clear_filters,
+        )
+        btn_clear_filter.grid(row=0, column=1, sticky="w", padx=3, pady=2)
+
+        # Enter في حقل الاسم = تطبيق الفلترة
+        entry_search_name.bind("<Return>", lambda e: self.apply_filters())
 
         # شريط تمرير
         self.tree_scroll_y = ttk.Scrollbar(table_frame, orient="vertical")
@@ -117,7 +196,7 @@ class OrphansScreen(ttk.Frame):
         self.tree_scroll_y.config(command=self.tree.yview)
 
         # عناوين الأعمدة
-        self.tree.heading("id", text="الرقم")
+        self.tree.heading("id", text="رقم الييم")
         self.tree.heading("name", text="الاسم")
         self.tree.heading("age", text="العمر")
         self.tree.heading("governorate", text="المحافظة")
@@ -135,20 +214,37 @@ class OrphansScreen(ttk.Frame):
         # حدث اختيار صف
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
 
+        # ---- أزرار التصدير تحت الجدول ----
+        export_frame = ttk.Frame(table_frame)
+        export_frame.pack(fill="x", padx=5, pady=(5, 0))
+
+        btn_excel = ttk.Button(
+            export_frame,
+            text="Excel تصدير الأيتام إلى",
+            width=22,
+            command=self.export_to_excel,
+        )
+        btn_excel.pack(side="right", padx=(5, 0))
+
+        btn_pdf = ttk.Button(
+            export_frame,
+            text="PDF تصدير الأيتام إلى",
+            width=22,
+            command=self.export_to_pdf,
+        )
+        btn_pdf.pack(side="right", padx=(5, 0))
+
         # ====== يمين: نموذج بيانات اليتيم والكفالة ======
         form_frame = ttk.LabelFrame(
-            self, text="بيانات اليتيم والكفالة", padding=10, labelanchor="ne"
+            self, text="بيانات اليتيم والكفالة", padding=10, labelanchor="ne", style="Card.TLabelframe"
         )
+
         form_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 10), pady=10)
 
         form_frame.columnconfigure(0, weight=1)
         form_frame.columnconfigure(1, weight=0)
 
         row_idx = 0
-
-        # أوامر التحقق للأرقام
-        vcmd_int = (self.register(self._validate_int), "%P")
-        vcmd_float = (self.register(self._validate_float), "%P")
 
         def add_row(label_text: str, widget):
             """يضيف حقل + عنوانه في صف واحد، مع النقطتين بعد النص."""
@@ -163,11 +259,15 @@ class OrphansScreen(ttk.Frame):
         entry_id = ttk.Entry(
             form_frame, textvariable=self.var_id, state="readonly", width=10, justify="right"
         )
-        add_row("رقم اليتيم", entry_id)
+        add_row("رقم الملف", entry_id)
 
         # الاسم الثلاثي
-        entry_name = ttk.Entry(
-            form_frame, textvariable=self.var_name, width=35, justify="right"
+        entry_name = tk.Entry(
+            form_frame, 
+            textvariable=self.var_name, 
+            width=35, 
+            justify="right", 
+            font=("Arial", 11)
         )
         add_row("الاسم الثلاثي", entry_name)
 
@@ -183,14 +283,14 @@ class OrphansScreen(ttk.Frame):
         gender_combo.current(0)
         add_row("الجنس", gender_combo)
 
-        # العمر (أرقام فقط)
+        # العمر
         entry_age = ttk.Entry(
             form_frame,
             textvariable=self.var_age,
             width=10,
             justify="right",
             validate="key",
-            validatecommand=vcmd_int,
+            validatecommand=vcmd_int,  # يسمح فقط بالأرقام أو فراغ
         )
         add_row("العمر (بالسنوات)", entry_age)
 
@@ -218,14 +318,14 @@ class OrphansScreen(ttk.Frame):
         )
         add_row("اسم ولي الأمر", entry_guard_name)
 
-        # هاتف ولي الأمر (أرقام فقط)
+        # هاتف ولي الأمر
         entry_guard_phone = ttk.Entry(
             form_frame,
             textvariable=self.var_guardian_phone,
             width=20,
             justify="right",
             validate="key",
-            validatecommand=vcmd_int,
+            validatecommand=vcmd_int,   # ⬅️ أرقام فقط
         )
         add_row("هاتف ولي الأمر", entry_guard_phone)
 
@@ -264,25 +364,29 @@ class OrphansScreen(ttk.Frame):
         )
         row_idx += 1
 
-        # المبلغ الشهري (رقم عشري)
+        # المبلغ الشهري
         entry_amount = ttk.Entry(
             form_frame,
             textvariable=self.var_monthly_amount,
             width=12,
             justify="right",
             validate="key",
-            validatecommand=vcmd_float,
+            validatecommand=vcmd_int,   # ⬅️ أرقام فقط
         )
         add_row("المبلغ الشهري", entry_amount)
 
-        # تاريخ بدء الكفالة - مع تقويم
+        # تاريخ بدء الكفالة - باستخدام تقويم ttkbootstrap
+        # لاحظ: غيرنا date_pattern إلى dateformat واستخدمنا صيغة %Y-%m-%d
         entry_start = DateEntry(
             form_frame,
-            textvariable=self.var_sponsorship_start,
             width=15,
-            justify="right",
-            date_pattern="yyyy-mm-dd",   # شكل التاريخ اللي ينحفظ بالنص
+            dateformat='%Y-%m-%d',
         )
+        # نربط المتغير والنص لليمين يدوياً لأن DateEntry هنا عبارة عن حاوية
+        entry_start.entry.configure(textvariable=self.var_sponsorship_start, justify="right")
+        
+        # نستخدم pack أو grid للحاوية نفسها
+        # لاحظ: الدالة add_row تتوقع widget، لذا سنمرر لها entry_start
         add_row("تاريخ بدء الكفالة", entry_start)
 
         # حالة الكفالة
@@ -332,13 +436,13 @@ class OrphansScreen(ttk.Frame):
     # ==========================
 
     def load_orphans(self):
-        """تحميل الأيتام مع بيانات الكفالة إلى الجدول"""
+        """تحميل الأيتام مع بيانات الكفالة إلى الجدول (مع تطبيق الفلترة إن وجدت)"""
         for row in self.tree.get_children():
             self.tree.delete(row)
 
         cursor = self.conn.cursor()
-        cursor.execute(
-            """
+
+        query = """
             SELECT
                 o.id,
                 o.name,
@@ -350,11 +454,42 @@ class OrphansScreen(ttk.Frame):
             LEFT JOIN sponsorships s
                 ON o.id = s.orphan_id
                 AND (s.status = 'فعّالة' OR s.status IS NULL)
-            ORDER BY o.id ASC
-            """
-        )
-        for row in cursor.fetchall():
-            self.tree.insert("", tk.END, values=row)
+            WHERE 1=1
+        """
+        params = []
+
+        # تطبيق الفلاتر
+        name_filter = self.filter_name.get().strip()
+        gov_filter = self.filter_governorate.get().strip()
+        status_filter = self.filter_status.get().strip()
+
+        if name_filter:
+            query += " AND o.name LIKE ?"
+            params.append(f"%{name_filter}%")
+
+        if gov_filter:
+            query += " AND o.governorate = ?"
+            params.append(gov_filter)
+
+        if status_filter:
+            query += " AND o.status = ?"
+            params.append(status_filter)
+
+        query += " ORDER BY o.id ASC"
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        # التعديل: نستخدم enumerate لعمل عداد (i) يبدأ من 1
+        for i, row in enumerate(rows, start=1):
+            real_id = row[0]  # هذا هو الـ ID الحقيقي من قاعدة البيانات
+            
+            # نجهز القيم للعرض: نضع العداد (i) في أول عمود بدلاً من الـ ID الحقيقي
+            # row[1] هو الاسم، row[2] العمر... إلخ
+            display_values = (i, row[1], row[2], row[3], row[4], row[5])
+            
+            # نستخدم real_id كمعرف للصف (iid) لنسترجعه عند النقر
+            self.tree.insert("", tk.END, iid=str(real_id), values=display_values)
 
     def get_orphan_by_id(self, orphan_id: int) -> Optional[Tuple]:
         cursor = self.conn.cursor()
@@ -494,6 +629,17 @@ class OrphansScreen(ttk.Frame):
 
         self.tree.selection_remove(self.tree.selection())
 
+    def apply_filters(self):
+        """تطبيق قيم البحث/الفلترة الحالية على الجدول"""
+        self.load_orphans()
+
+    def clear_filters(self):
+        """مسح الفلاتر وإعادة تحميل كل الأيتام"""
+        self.filter_name.set("")
+        self.filter_governorate.set("")
+        self.filter_status.set("")
+        self.load_orphans()
+
     def form_orphan_data(self) -> Optional[dict]:
         """قراءة بيانات اليتيم من الفورم"""
         name = self.var_name.get().strip()
@@ -599,8 +745,8 @@ class OrphansScreen(ttk.Frame):
         if not selected:
             return
 
-        item = self.tree.item(selected[0])
-        orphan_id = item["values"][0]
+        # التعديل: الـ orphan_id الآن هو نفسه الـ selected[0] لأننا خزنناه في الـ iid
+        orphan_id = selected[0]
 
         row = self.get_orphan_by_id(int(orphan_id))
         if not row:
@@ -638,3 +784,235 @@ class OrphansScreen(ttk.Frame):
             self.var_sponsorship_status.set("فعّالة")
             self.sponsorship_notes_text.delete("1.0", tk.END)
             self._apply_right_tag(self.sponsorship_notes_text)
+
+        # ==========================
+    #   التصدير إلى Excel / PDF
+    # ==========================
+
+    def _collect_current_rows(self):
+        """جمع الصفوف الظاهرة حالياً في جدول الأيتام."""
+        rows = []
+        for iid in self.tree.get_children():
+            values = self.tree.item(iid)["values"]
+            if values:
+                # (id, name, age, governorate, status, monthly_amount)
+                rows.append(values)
+        return rows
+
+    def export_to_excel(self):
+        rows = self._collect_current_rows()
+        if not rows:
+            messagebox.showinfo("معلومة", "لا توجد بيانات في الجدول للتصدير.")
+            return
+
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Alignment, Font
+        except ImportError:
+            messagebox.showerror(
+                "خطأ",
+                "مكتبة openpyxl غير مثبتة.\n\nرجاءً نفّذ الأمر التالي داخل بيئة المشروع:\n\npip install openpyxl",
+            )
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("ملفات Excel", "*.xlsx")],
+            initialfile="تقرير_الأيتام.xlsx",
+            title="حفظ تقرير الأيتام كملف Excel",
+        )
+        if not file_path:
+            return
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "الأيتام"
+
+        headers = ["رقم اليتيم", "الاسم", "العمر", "المحافظة",
+                   "حالة اليتيم", "المبلغ الشهري"]
+
+        ws.append(headers)
+
+        total_monthly = 0.0
+
+        for (oid, name, age, gov, status, monthly) in rows:
+            try:
+                m_val = float(monthly or 0)
+            except ValueError:
+                m_val = 0.0
+            total_monthly += m_val
+
+            ws.append([
+                oid,
+                name,
+                age if age is not None else "",
+                gov,
+                status,
+                m_val,
+            ])
+
+        # صف مجموع المبالغ الشهرية
+        ws.append([])
+        ws.append([
+            "", "", "", "مجموع المبالغ الشهرية",
+            "",
+            total_monthly,
+        ])
+
+        align_right = Alignment(horizontal="right")
+        bold_font = Font(bold=True)
+
+        # ترويسة
+        for cell in ws[1]:
+            cell.font = bold_font
+            cell.alignment = align_right
+
+        # بقية الخلايا يمين
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+            for cell in row:
+                cell.alignment = align_right
+
+        # صف المجموع بولد
+        for cell in ws[ws.max_row]:
+            cell.font = bold_font
+
+        try:
+            wb.save(file_path)
+            messagebox.showinfo("تم", "تم تصدير تقرير الأيتام إلى ملف Excel بنجاح.")
+        except Exception as e:
+            messagebox.showerror("خطأ", f"حدث خطأ أثناء حفظ ملف Excel:\n{e}")
+
+    def export_to_pdf(self):
+        """تصدير قائمة الأيتام الظاهرة في الجدول إلى PDF مع دعم العربية"""
+        # جمع الصفوف من جدول الأيتام
+        rows = []
+        for iid in self.tree.get_children():
+            values = self.tree.item(iid)["values"]
+            # values = (id, name, age, governorate, status, monthly_amount)
+            if values:
+                rows.append(values)
+
+        if not rows:
+            messagebox.showinfo("معلومة", "لا توجد بيانات في الجدول للتصدير.")
+            return
+
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+            import arabic_reshaper
+            from bidi.algorithm import get_display
+        except ImportError:
+            messagebox.showerror(
+                "خطأ",
+                "مكتبات reportlab / arabic_reshaper / python-bidi غير مثبتة.\n\n"
+                "رجاءً نفّذ الأمر:\n"
+                "pip install reportlab arabic_reshaper python-bidi",
+            )
+            return
+
+        # تسجيل خط عربي
+        def register_arabic_font():
+            font_paths = [
+                r"C:\Windows\Fonts\arial.ttf",
+                r"C:\Windows\Fonts\trado.ttf",
+                r"C:\Windows\Fonts\Tahoma.ttf",
+            ]
+            for p in font_paths:
+                try:
+                    pdfmetrics.registerFont(TTFont("ArabicMain", p))
+                    return "ArabicMain"
+                except Exception:
+                    continue
+            return "Helvetica"
+
+        font_name = register_arabic_font()
+
+        # تجهيز النص العربي
+        def ar(text: str) -> str:
+            if text is None:
+                return ""
+            s = str(text)
+            try:
+                reshaped = arabic_reshaper.reshape(s)
+                return get_display(reshaped)
+            except Exception:
+                return s
+
+        from app_settings import get_default_export_dir
+        initial_name = "تقرير_الأيتام.pdf"
+        initial_dir = get_default_export_dir() or ""
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("ملفات PDF", "*.pdf")],
+            initialfile=initial_name,
+            initialdir=initial_dir,
+            title="حفظ تقرير الأيتام كملف PDF",
+        )
+        if not file_path:
+            return
+
+        page_width, page_height = A4
+        c = canvas.Canvas(file_path, pagesize=A4)
+
+        # عنوان
+        c.setFont(font_name, 14)
+        c.drawRightString(page_width - 40, page_height - 40, ar("تقرير الأيتام"))
+
+        # مواضع الأعمدة (من اليمين لليسار)
+        y = page_height - 70
+        x_id = page_width - 40
+        x_name = x_id - 50
+        x_age = x_name - 140
+        x_gov = x_age - 50
+        x_status = x_gov - 80
+        x_amount = x_status - 80
+
+        def draw_header():
+            nonlocal y
+            c.setFont(font_name, 9)
+            c.drawRightString(x_id, y, ar("الرقم"))
+            c.drawRightString(x_name, y, ar("اسم اليتيم"))
+            c.drawRightString(x_age, y, ar("العمر"))
+            c.drawRightString(x_gov, y, ar("المحافظة"))
+            c.drawRightString(x_status, y, ar("حالة اليتيم"))
+            c.drawRightString(x_amount, y, ar("المبلغ الشهري"))
+            y -= 15
+            c.line(40, y + 5, page_width - 40, y + 5)
+
+        # رسم الهيدر أول مرة
+        draw_header()
+        c.setFont(font_name, 9)
+        y -= 10
+
+        # تعبئة الصفوف
+        for (oid, name, age, gov, status, monthly_amount) in rows:
+            if y < 60:
+                # صفحة جديدة
+                c.showPage()
+                c.setFont(font_name, 14)
+                c.drawRightString(page_width - 40, page_height - 40, ar("تقرير الأيتام"))
+                y = page_height - 70
+                draw_header()
+                c.setFont(font_name, 9)
+                y -= 10
+
+            c.drawRightString(x_id, y, str(oid))
+            c.drawRightString(x_name, y, ar(name))
+            c.drawRightString(
+                x_age, y, str(age) if age not in (None, "") else ""
+            )
+            c.drawRightString(x_gov, y, ar(gov))
+            c.drawRightString(x_status, y, ar(status))
+            c.drawRightString(x_amount, y, str(monthly_amount or 0))
+            y -= 14
+
+        c.showPage()
+        try:
+            c.save()
+            messagebox.showinfo("تم", "تم تصدير تقرير الأيتام إلى ملف PDF بنجاح.")
+        except Exception as e:
+            messagebox.showerror("خطأ", f"حدث خطأ أثناء حفظ ملف PDF:\n{e}")
+

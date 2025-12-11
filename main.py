@@ -94,8 +94,28 @@ class MainApp(ttk.Window):
         header = ttk.Frame(self.main_container, bootstyle=color, padding=10)
         header.pack(fill="x", side="top")
         
+        # العنوان (يمين)
         ttk.Label(header, text=title, font=("Segoe UI", 16, "bold"), bootstyle=f"inverse-{color}").pack(side="right", padx=10)
-        ttk.Button(header, text="الرئيسية 🏠", bootstyle="light-outline", command=self.show_dashboard).pack(side="left")
+        
+        # زر الرئيسية (يسار)
+        btn_home = ttk.Button(
+            header, 
+            text="الرئيسية 🏠", 
+            bootstyle="light",   # اللون الافتراضي (أبيض صلب)
+            width=12, 
+            command=self.show_dashboard
+        )
+        btn_home.pack(side="left", ipadx=5, ipady=2)
+        
+        # === إضافة تأثير Hover (تغيير اللون عند المرور) ===
+        
+        # عند دخول الماوس: نغير الستايل إلى لون آخر (مثلاً 'info' أو 'secondary' أو 'warning')
+        # اختر اللون الذي يناسب ذوقك، هنا اخترت 'secondary' ليصبح رمادياً عند المرور
+        btn_home.bind("<Enter>", lambda e: btn_home.configure(bootstyle="secondary"))
+        
+        # عند خروج الماوس: يعود للون الأصلي 'light'
+        btn_home.bind("<Leave>", lambda e: btn_home.configure(bootstyle="light"))
+        
         return header
 
     # --- تحميل الأنظمة ---
@@ -198,7 +218,7 @@ class MainApp(ttk.Window):
         ttk.Separator(about_frame).pack(fill="x", pady=20)
         
         # معلومات المطور
-        ttk.Label(about_frame, text="تم التطوير بواسطة:", font=("Segoe UI", 12)).pack()
+        ttk.Label(about_frame, text="تم التطوير بواسطة", font=("Segoe UI", 12)).pack()
         
         # الاسم عربي وانكليزي
         developer_text = "Hamza Altaie  |  حمزة الطائي"

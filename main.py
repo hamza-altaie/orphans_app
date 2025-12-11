@@ -4,219 +4,179 @@ from ttkbootstrap.constants import *
 import sqlite3
 from datetime import datetime
 
-# استيراد ملفاتك
+# استيراد الملفات
 from db_setup import DB_NAME, create_tables
 from orphans_screen import OrphansScreen
 from payments_screen import PaymentsScreen
 from settings_screen import SettingsScreen
 from statistics_screen import StatisticsScreen
 
-# ==========================
-#   شاشة التحميل (Splash Screen)
-# ==========================
+# استيراد الشاشات الجديدة
+from students_screen import StudentsScreen
+from housing_screen import HousingScreen
+
 class SplashScreen(ttk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.overrideredirect(True)
+        self.geometry(f"450x280+{(self.winfo_screenwidth()-450)//2}+{(self.winfo_screenheight()-280)//2}")
         
-        width = 450
-        height = 280
-        screen_w = self.winfo_screenwidth()
-        screen_h = self.winfo_screenheight()
-        x = (screen_w - width) // 2
-        y = (screen_h - height) // 2
-        self.geometry(f"{width}x{height}+{x}+{y}")
-
         main_frame = ttk.Frame(self, padding=20, bootstyle="light")
         main_frame.pack(expand=True, fill="both")
+        
+        ttk.Label(main_frame, text="نظام الكفالة والرعاية المتكامل", font=("Segoe UI", 20, "bold"), bootstyle="primary").pack(pady=20)
+        ttk.Label(main_frame, text="جارٍ التحميل...", font=("Segoe UI", 10)).pack()
+        
+        pb = ttk.Progressbar(main_frame, mode="indeterminate", length=350, bootstyle="primary-striped")
+        pb.pack(pady=10)
+        pb.start(10)
 
-        ttk.Label(
-            main_frame, 
-            text="نظام كفالة الأيتام", 
-            font=("Segoe UI", 22, "bold"),
-            bootstyle="primary"
-        ).pack(pady=(20, 10))
-
-        ttk.Label(
-            main_frame, 
-            text="جارٍ تحميل الواجهة...", 
-            font=("Segoe UI", 10),
-            bootstyle="secondary"
-        ).pack(pady=(0, 5))
-
-        self.progress = ttk.Progressbar(
-            main_frame, 
-            mode="indeterminate", 
-            length=350, 
-            bootstyle="primary-striped"
-        )
-        self.progress.pack(pady=10)
-        self.progress.start(10)
-
-# ==========================
-#   التطبيق الرئيسي
-# ==========================
 class MainApp(ttk.Window):
     def __init__(self):
         super().__init__(themename="flatly")
-        
-        self.title("نظام كفالة الأيتام")
-        self.geometry("1200x800")
+        self.title("نظام الكفالة والرعاية المتكامل")
+        self.geometry("1280x850")
         
         self.conn = sqlite3.connect(DB_NAME)
         create_tables(self.conn)
 
-        # تحسين الخطوط
         self.style.configure('.', font=('Segoe UI', 10))
-        self.style.configure('Treeview', rowheight=30)
+        self.style.configure('Treeview', rowheight=28)
         self.style.configure('Treeview.Heading', font=('Segoe UI', 11, 'bold'))
+        self.style.layout('Custom.TNotebook.Tab', [])
 
-        # إخفاء شريط التبويبات الأصلي
-        self.style.layout('Custom.TNotebook.Tab', []) 
-        self.style.layout('Custom.TNotebook', [('Notebook.client', {'sticky': 'nswe'})])
+        self.main_container = ttk.Frame(self)
+        self.main_container.pack(fill="both", expand=True)
 
-        self.create_layout()
+        self.show_dashboard()
 
-    def create_layout(self):
-        # 1. الشريط العلوي
-        header_frame = ttk.Frame(self, padding=(10, 10))
-        header_frame.pack(fill="x", side=TOP)
+    def clear_container(self):
+        for widget in self.main_container.winfo_children():
+            widget.destroy()
 
-        # 2. منطقة المحتوى
-        self.notebook = ttk.Notebook(self, style='Custom.TNotebook')
-        self.notebook.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-
-        # --- إنشاء الصفحات ---
-        self.orphans_screen = OrphansScreen(self.notebook, self.conn)
-        self.payments_screen = PaymentsScreen(self.notebook, self.conn)
-        self.stats_screen = StatisticsScreen(self.notebook, self.conn)
-        self.settings_screen = SettingsScreen(self.notebook, self.conn)
+    def show_dashboard(self):
+        self.clear_container()
         
-        self.about_frame = ttk.Frame(self.notebook, padding=20)
-        self.create_about_content(self.about_frame)
+        dash_frame = ttk.Frame(self.main_container, padding=40)
+        dash_frame.pack(fill="both", expand=True)
 
-        # إضافة الصفحات
-        self.notebook.add(self.orphans_screen)   # 0
-        self.notebook.add(self.payments_screen)  # 1
-        self.notebook.add(self.stats_screen)     # 2
-        self.notebook.add(self.settings_screen)  # 3
-        self.notebook.add(self.about_frame)      # 4
+        ttk.Label(dash_frame, text="مرحباً بك في النظام المتكامل", font=("Segoe UI", 24, "bold"), bootstyle="dark").pack(pady=(0, 30))
 
-        # --- إنشاء أزرار التنقل (ألوان مختارة بعناية) ---
-        self.nav_buttons = [] 
+        # منطقة البطاقات
+        cards_frame = ttk.Frame(dash_frame)
+        cards_frame.pack(expand=True, fill="both")
 
-        # الترتيب من اليمين لليسار:
+        # الصف الأول: الأنظمة
+        row1 = ttk.Frame(cards_frame)
+        row1.pack(pady=15)
+
+        # ترتيب الأزرار لليمين
+        self.create_dash_btn(row1, "دعم السكن", "warning", self.load_housing_system)
+        self.create_dash_btn(row1, "كفالة الطلاب", "success", self.load_students_system)
+        self.create_dash_btn(row1, "كفالة الأيتام", "primary", self.load_orphans_system)
+
+        # الصف الثاني: الأدوات
+        row2 = ttk.Frame(cards_frame)
+        row2.pack(pady=15)
+
+        self.create_dash_btn(row2, "حول البرنامج", "info", self.load_about_page)
+        self.create_dash_btn(row2, "الإعدادات", "secondary", self.load_settings_page)
+
+        ttk.Label(dash_frame, text="Hamza Altaie © 2025", bootstyle="secondary").pack(side="bottom", pady=20)
+
+    def create_dash_btn(self, parent, text, color, command):
+        btn = ttk.Button(parent, text=text, bootstyle=f"{color}", width=22, command=command)
+        # padding خارجي للزر ليبتعد عن أخيه
+        btn.pack(side="right", padx=15, ipady=15)
+
+    def create_top_nav(self, title, color):
+        header = ttk.Frame(self.main_container, bootstyle=color, padding=10)
+        header.pack(fill="x", side="top")
         
-        # 1. الأيتام (أزرق - أساسي)
-        self.create_nav_button(header_frame, "الأيتام والكفالات", 0, "primary")
+        ttk.Label(header, text=title, font=("Segoe UI", 16, "bold"), bootstyle=f"inverse-{color}").pack(side="right", padx=10)
+        ttk.Button(header, text="الرئيسية 🏠", bootstyle="light-outline", command=self.show_dashboard).pack(side="left")
+        return header
+
+    # --- تحميل الأنظمة ---
+    def load_orphans_system(self):
+        self.clear_container()
+        self.create_top_nav("نظام كفالة الأيتام", "primary")
         
-        # 2. الدفعات (أخضر - مال)
-        self.create_nav_button(header_frame, "الدفعات الشهرية", 1, "success")
+        notebook = ttk.Notebook(self.main_container, style='Custom.TNotebook')
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # 3. الإحصائيات (برتقالي - تقارير)
-        self.create_nav_button(header_frame, "الإحصائيات", 2, "warning")
+        # أزرار التنقل العلوية الخاصة بالأيتام
+        nav_frame = ttk.Frame(self.main_container)
+        nav_frame.pack(before=notebook, fill="x", padx=10)
+
+        def switch(idx): notebook.select(idx)
         
-        # 4. الإعدادات (رمادي - أدوات)
-        self.create_nav_button(header_frame, "الإعدادات", 3, "secondary")
+        # عند استخدام side=RIGHT:
+        # أول زر يُكتب في الكود -> يظهر في أقصى اليمين (الأول)
+        # آخر زر يُكتب في الكود -> يظهر في أقصى اليسار (الأخير)
+
+        # 1. الأيتام (أول زر يمين)
+        ttk.Button(nav_frame, text="الأيتام", bootstyle="outline-primary", command=lambda: switch(0)).pack(side=RIGHT, padx=2)
         
-        # 5. حول البرنامج (سماوي - معلومات)
-        self.create_nav_button(header_frame, "حول البرنامج", 4, "info")
+        # 2. الدفعات
+        ttk.Button(nav_frame, text="الدفعات", bootstyle="outline-success", command=lambda: switch(1)).pack(side=RIGHT, padx=2)
         
-        # تفعيل الصفحة الأولى
-        self.switch_tab(0)
-
-    def create_nav_button(self, parent, text, index, color_name):
-        """إنشاء زر مع تحديد لونه الخاص"""
-        # الحالة الافتراضية: مفرغ (Outline)
-        btn = ttk.Button(
-            parent, 
-            text=text, 
-            bootstyle=f"outline-{color_name}", 
-            width=18,
-            command=lambda: self.switch_tab(index)
-        )
-        btn.pack(side=RIGHT, padx=5)
+        # 3. الإحصائيات
+        ttk.Button(nav_frame, text="الإحصائيات", bootstyle="outline-warning", command=lambda: switch(2)).pack(side=RIGHT, padx=2)
         
-        # نحفظ الزر + رقمه + لونه المخصص
-        self.nav_buttons.append((btn, index, color_name))
+        # 4. الإعدادات (آخر زر يسار)
+        ttk.Button(nav_frame, text="الإعدادات", bootstyle="outline-secondary", command=lambda: switch(3)).pack(side=RIGHT, padx=2)
 
-    def switch_tab(self, index):
-        """الانتقال للصفحة وتحديث ألوان الأزرار"""
-        self.notebook.select(index)
-
-        for btn, btn_index, color_name in self.nav_buttons:
-            if btn_index == index:
-                # الزر النشط: يمتلئ بلونه المخصص
-                btn.configure(bootstyle=color_name) 
-            else:
-                # الزر غير النشط: يصبح مفرغاً بلونه المخصص
-                btn.configure(bootstyle=f"outline-{color_name}")
-
-    def create_about_content(self, parent):
-        """محتوى شاشة حول البرنامج"""
+        # إضافة الصفحات (يجب أن يتطابق الترتيب هنا مع أرقام switch أعلاه)
+        notebook.add(OrphansScreen(notebook, self.conn))      # index 0
+        notebook.add(PaymentsScreen(notebook, self.conn))     # index 1
+        notebook.add(StatisticsScreen(notebook, self.conn))   # index 2
+        notebook.add(SettingsScreen(notebook, self.conn))     # index 3
         
-        main_container = ttk.Frame(parent)
-        main_container.pack(expand=True, fill="both", padx=50, pady=20)
+        switch(0)
 
-        # القسم الأول
-        sys_frame = ttk.Labelframe(
-            main_container, 
-            text=" عن النظام ", 
-            padding=20, 
-            bootstyle="info"
-        )
-        sys_frame.pack(fill="x", pady=(0, 20))
-
-        ttk.Label(
-            sys_frame, 
-            text="نظام كفالة الأيتام", 
-            font=("Segoe UI", 18, "bold"), 
-            bootstyle="inverse-info"
-        ).pack(pady=10)
-
-        ttk.Label(sys_frame, text="الإصدار 1.0", font=("Segoe UI", 11)).pack()
-        ttk.Label(sys_frame, text="نظام لإدارة بيانات الأيتام، الكفلاء، والدفعات الشهرية.", bootstyle="secondary").pack(pady=5)
-
-        # القسم الثاني
-        dev_frame = ttk.Labelframe(
-            main_container, 
-            text=" معلومات المطور ", 
-            padding=20, 
-            bootstyle="success"
-        )
-        dev_frame.pack(fill="x")
-
-        ttk.Label(dev_frame, text="تم التطوير والبرمجة بواسطة:", font=("Segoe UI", 10), bootstyle="secondary").pack(anchor="e")
+    def load_students_system(self):
+        self.clear_container()
+        self.create_top_nav("نظام كفالة الطلاب", "success")
         
-        developer_name = "Hamza Altaie" 
+        # حاوية رئيسية
+        container = ttk.Frame(self.main_container)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        ttk.Label(
-            dev_frame, 
-            text=developer_name, 
-            font=("Segoe UI", 16, "bold"), 
-            bootstyle="success"
-        ).pack(anchor="e", pady=(0, 10))
+        # شاشة الطلاب مباشرة
+        StudentsScreen(container, self.conn).pack(fill="both", expand=True)
 
-        ttk.Separator(dev_frame, bootstyle="secondary").pack(fill="x", pady=10)
+    def load_housing_system(self):
+        self.clear_container()
+        self.create_top_nav("نظام دعم السكن", "warning")
+        
+        container = ttk.Frame(self.main_container)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        HousingScreen(container, self.conn).pack(fill="both", expand=True)
 
-        contact_info = [
-            ("📱 الهاتف", "07766900989"),
-            ("📧 البريد", "hamza.altaie@gmail.com"),
-            ("📍 العنوان", "العراق - بغداد"),
-        ]
+    def load_settings_page(self):
+        self.clear_container()
+        self.create_top_nav("الإعدادات العامة", "secondary")
+        
+        container = ttk.Frame(self.main_container, padding=20)
+        container.pack(fill="both", expand=True)
+        
+        # نستخدم شاشة الإعدادات الموجودة
+        SettingsScreen(container, self.conn).pack(fill="both", expand=True)
 
-        for label, value in contact_info:
-            row = ttk.Frame(dev_frame)
-            row.pack(fill="x", pady=2)
-            ttk.Label(row, text=value, font=("Segoe UI", 11, "bold"), bootstyle="dark").pack(side=LEFT)
-            ttk.Label(row, text=f": {label}", font=("Segoe UI", 11), bootstyle="secondary").pack(side=RIGHT)
-
-        ttk.Label(
-            main_container, 
-            text=f"جميع الحقوق محفوظة © {datetime.now().year}", 
-            font=("Segoe UI", 9), 
-            bootstyle="secondary"
-        ).pack(side=BOTTOM, pady=20)
+    def load_about_page(self):
+        self.clear_container()
+        self.create_top_nav("حول البرنامج", "info")
+        
+        about_frame = ttk.Frame(self.main_container, padding=50)
+        about_frame.pack(fill="both", expand=True)
+        
+        ttk.Label(about_frame, text="نظام كفالة الأيتام والرعاية", font=("Segoe UI", 22, "bold")).pack(pady=10)
+        ttk.Label(about_frame, text="الإصدار 2.0 - نسخة متكاملة", font=("Segoe UI", 12)).pack(pady=5)
+        ttk.Separator(about_frame).pack(fill="x", pady=20)
+        ttk.Label(about_frame, text="تم التطوير بواسطة: Hamza Altaie", font=("Segoe UI", 14), bootstyle="success").pack(pady=5)
+        ttk.Label(about_frame, text="للتواصل: 07766900989", font=("Segoe UI", 12)).pack(pady=5)
 
     def on_closing(self):
         self.conn.close()
@@ -226,11 +186,9 @@ if __name__ == "__main__":
     app = MainApp()
     app.withdraw()
     splash = SplashScreen(app)
-    
-    def finish_splash():
+    def finish():
         splash.destroy()
         app.deiconify()
         app.protocol("WM_DELETE_WINDOW", app.on_closing)
-
-    app.after(2000, finish_splash)
+    app.after(1500, finish)
     app.mainloop()

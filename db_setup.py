@@ -2,36 +2,22 @@
 import sqlite3
 import os
 
-# اسم مجلد بيانات البرنامج داخل مجلد المستخدم
 APP_DIR_NAME = "OrphansApp"
 
-
 def get_data_dir() -> str:
-    """
-    يرجّع مسار مجلد بيانات البرنامج داخل مجلد المستخدم.
-    مثال:
-    C:\\Users\\اسمك\\AppData\\Roaming\\OrphansApp
-    """
     base = os.getenv("APPDATA") or os.path.expanduser("~")
     data_dir = os.path.join(base, APP_DIR_NAME)
     os.makedirs(data_dir, exist_ok=True)
     return data_dir
 
-
-# المسار الكامل لقاعدة البيانات
 DB_NAME = os.path.join(get_data_dir(), "orphans.db")
 
-
 def create_tables(conn: sqlite3.Connection):
-    """إنشاء الجداول إذا لم تكن موجودة"""
     cursor = conn.cursor()
-
-    # تفعيل الـ FOREIGN KEY في SQLite
     cursor.execute("PRAGMA foreign_keys = ON;")
 
-    # جدول الأيتام
-    cursor.execute(
-        """
+    # --- 1. جداول الأيتام ---
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS orphans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -44,12 +30,8 @@ def create_tables(conn: sqlite3.Connection):
             status TEXT,
             notes TEXT
         )
-        """
-    )
-
-    # جدول الكفالات
-    cursor.execute(
-        """
+    """)
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS sponsorships (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             orphan_id INTEGER NOT NULL,
@@ -59,12 +41,8 @@ def create_tables(conn: sqlite3.Connection):
             notes TEXT,
             FOREIGN KEY(orphan_id) REFERENCES orphans(id) ON DELETE CASCADE
         )
-        """
-    )
-
-    # جدول الدفعات
-    cursor.execute(
-        """
+    """)
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS payments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             orphan_id INTEGER NOT NULL,
@@ -77,7 +55,50 @@ def create_tables(conn: sqlite3.Connection):
             notes TEXT,
             FOREIGN KEY(orphan_id) REFERENCES orphans(id) ON DELETE CASCADE
         )
-        """
-    )
+    """)
+
+    # --- 2. جداول الطلاب (نظام جديد) ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS students (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            gender TEXT,
+            birth_date TEXT,
+            school_stage TEXT, -- الابتدائية، المتوسطة، الخ
+            school_name TEXT,
+            guardian_name TEXT,
+            guardian_phone TEXT,
+            status TEXT,
+            notes TEXT
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS student_sponsorships (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            monthly_amount REAL,
+            start_date TEXT,
+            status TEXT,
+            notes TEXT,
+            FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+        )
+    """)
+    # يمكن إضافة جدول student_payments هنا بنفس هيكلية payments
+
+    # --- 3. جداول دعم السكن (نظام جديد) ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS housing_beneficiaries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            governorate TEXT,
+            address TEXT,
+            phone TEXT,
+            housing_status TEXT, -- ملك، إيجار، تجاوز
+            support_type TEXT,   -- ترميم، بناء، إيجار
+            amount_allocated REAL,
+            project_status TEXT, -- قيد الإنجاز، مكتمل
+            notes TEXT
+        )
+    """)
 
     conn.commit()

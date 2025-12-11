@@ -57,21 +57,24 @@ def create_tables(conn: sqlite3.Connection):
         )
     """)
 
-    # --- 2. جداول الطلاب (نظام جديد) ---
+    # --- 2. جداول الطلاب (تمت إضافة الهاتف والملاحظات) ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            phone TEXT,             -- حقل جديد: رقم هاتف الطالب
             gender TEXT,
             birth_date TEXT,
-            school_stage TEXT, -- الابتدائية، المتوسطة، الخ
+            school_stage TEXT,
             school_name TEXT,
             guardian_name TEXT,
             guardian_phone TEXT,
             status TEXT,
-            notes TEXT
+            notes TEXT              -- حقل جديد: الملاحظات
         )
     """)
+    
+    # جدول كفالة الطلاب
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS student_sponsorships (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,21 +86,20 @@ def create_tables(conn: sqlite3.Connection):
             FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
         )
     """)
-    # يمكن إضافة جدول student_payments هنا بنفس هيكلية payments
 
-    # --- 3. جداول دعم السكن (نظام جديد) ---
+    # --- 3. جداول دعم السكن (تمت إضافة الهاتف والملاحظات) ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS housing_beneficiaries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
+            phone TEXT,             -- حقل جديد: رقم الهاتف
             governorate TEXT,
             address TEXT,
-            phone TEXT,
-            housing_status TEXT, -- ملك، إيجار، تجاوز
-            support_type TEXT,   -- ترميم، بناء، إيجار
+            housing_status TEXT,
+            support_type TEXT,
             amount_allocated REAL,
-            project_status TEXT, -- قيد الإنجاز، مكتمل
-            notes TEXT
+            project_status TEXT,
+            notes TEXT              -- حقل جديد: الملاحظات
         )
     """)
 

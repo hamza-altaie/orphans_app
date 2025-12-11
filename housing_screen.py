@@ -9,7 +9,9 @@ class HousingScreen(ttk.Frame):
         super().__init__(parent)
         self.conn = conn
         
-        # الجدول يسار (0)، الفورم يمين (1)
+        # === التخطيط مطابق لشاشة الأيتام ===
+        # العمود 0 (يسار): الجدول
+        # العمود 1 (يمين): الفورم
         self.columnconfigure(0, weight=3)
         self.columnconfigure(1, weight=2)
         self.rowconfigure(0, weight=1)
@@ -24,14 +26,14 @@ class HousingScreen(ttk.Frame):
         self.load_data()
 
     def create_widgets(self):
-        # --- 1. الجدول (يسار) ---
+        # --- 1. الجدول (يسار - العمود 0) ---
         table_frame = ttk.LabelFrame(self, text="مشاريع السكن", padding=5)
         table_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         
         columns = ("id", "name", "type", "status", "amount")
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", style="info.Treeview")
         
-        self.tree.heading("id", text="#")
+        self.tree.heading("id", text="ت")
         self.tree.heading("name", text="المستفيد")
         self.tree.heading("type", text="نوع الدعم")
         self.tree.heading("status", text="الحالة")
@@ -49,7 +51,7 @@ class HousingScreen(ttk.Frame):
         self.tree.pack(fill="both", expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
-        # --- 2. الفورم (يمين) ---
+        # --- 2. الفورم (يمين - العمود 1) ---
         form_frame = ttk.LabelFrame(self, text="بيانات المشروع", padding=10)
         form_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
 
@@ -59,7 +61,8 @@ class HousingScreen(ttk.Frame):
         self.row_idx = 0
         def add_row(label, widget):
             widget.grid(row=self.row_idx, column=0, sticky="ew", pady=5, padx=5)
-            ttk.Label(form_frame, text=label + ":").grid(row=self.row_idx, column=1, sticky="e", pady=5, padx=5)
+            # إصلاح النقطتين باستخدام \u200f
+            ttk.Label(form_frame, text=label + " :\u200f").grid(row=self.row_idx, column=1, sticky="e", pady=5, padx=5)
             self.row_idx += 1
 
         add_row("رقم الملف", ttk.Entry(form_frame, textvariable=self.var_id, state="readonly", justify="right"))
@@ -77,8 +80,8 @@ class HousingScreen(ttk.Frame):
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=self.row_idx, column=0, columnspan=2, pady=20)
         
-        ttk.Button(btn_frame, text="جديد", bootstyle="secondary", width=10, command=self.clear).pack(side=LEFT, padx=5)
-        ttk.Button(btn_frame, text="حفظ", bootstyle="warning", width=10, command=self.save).pack(side=LEFT, padx=5)
+        ttk.Button(btn_frame, text="جديد", bootstyle="secondary", width=10, command=self.clear).grid(row=0, column=0, padx=5)
+        ttk.Button(btn_frame, text="حفظ", bootstyle="warning", width=10, command=self.save).grid(row=0, column=1, padx=5)
 
     def load_data(self):
         for row in self.tree.get_children(): self.tree.delete(row)

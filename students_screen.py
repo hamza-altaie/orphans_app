@@ -9,12 +9,13 @@ class StudentsScreen(ttk.Frame):
         super().__init__(parent)
         self.conn = conn
         
-        # مطابقة orphans_screen: الجدول يسار (0) والفورم يمين (1)
+        # === التخطيط مطابق لشاشة الأيتام ===
+        # العمود 0 (يسار): الجدول
+        # العمود 1 (يمين): الفورم
         self.columnconfigure(0, weight=3) # الجدول
         self.columnconfigure(1, weight=2) # الفورم
         self.rowconfigure(0, weight=1)
 
-        # المتغيرات
         self.var_id = tk.StringVar()
         self.var_name = tk.StringVar()
         self.var_stage = tk.StringVar()
@@ -25,17 +26,17 @@ class StudentsScreen(ttk.Frame):
         self.load_students()
 
     def create_widgets(self):
-        # --- 1. الجدول (يسار - العمود 0) ---
+        # --- 1. الجدول (على اليسار - العمود 0) ---
         table_frame = ttk.LabelFrame(self, text="سجل الطلاب", padding=5)
         table_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        # شريط بحث بسيط (مطابق للأيتام)
+        # شريط البحث
         search_frame = ttk.Frame(table_frame)
         search_frame.pack(fill="x", pady=5)
         
-        # العناصر تضاف من اليمين لليسار (Label -> Entry -> Button)
-        # لكن في orphans_screen تم استخدام Grid بترتيب معين
-        ttk.Label(search_frame, text="بحث بالاسم:").pack(side=RIGHT, padx=5)
+        # استخدام \u200f لإصلاح مكان النقطتين
+        ttk.Label(search_frame, text="بحث بالاسم :\u200f").pack(side=RIGHT, padx=5)
+        
         self.search_var = tk.StringVar()
         search_entry = ttk.Entry(search_frame, textvariable=self.search_var, justify="right")
         search_entry.pack(side=RIGHT, padx=5)
@@ -56,55 +57,48 @@ class StudentsScreen(ttk.Frame):
         self.tree.column("stage", width=100, anchor="center")
         self.tree.column("amount", width=100, anchor="center")
 
-        # RTL: عكس العرض (المبلغ يسار ... الرقم يمين)
+        # RTL: عكس ترتيب الأعمدة للعرض
         self.tree["displaycolumns"] = ("amount", "stage", "name", "id")
         
         self.tree.pack(fill="both", expand=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
-        # --- 2. الفورم (يمين - العمود 1) ---
+        # --- 2. الفورم (على اليمين - العمود 1) ---
         form_frame = ttk.LabelFrame(self, text="بيانات الطالب", padding=10)
         form_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         
-        # إعداد Grid للفورم (مطابق لـ orphans_screen: Widget=col0, Label=col1)
         form_frame.columnconfigure(0, weight=1)
         form_frame.columnconfigure(1, weight=0)
 
         self.row_idx = 0
         def add_row(label, widget):
+            # الويدجت في العمود 0 (يسار)
             widget.grid(row=self.row_idx, column=0, sticky="ew", pady=5, padx=5)
-            ttk.Label(form_frame, text=label + ":").grid(row=self.row_idx, column=1, sticky="e", pady=5, padx=5)
+            # العنوان في العمود 1 (يمين) مع إصلاح النقطتين
+            ttk.Label(form_frame, text=label + " :\u200f").grid(row=self.row_idx, column=1, sticky="e", pady=5, padx=5)
             self.row_idx += 1
 
-        # رقم الملف
         add_row("رقم الملف", ttk.Entry(form_frame, textvariable=self.var_id, state="readonly", justify="right"))
-        
-        # الاسم
         add_row("الاسم الثلاثي", ttk.Entry(form_frame, textvariable=self.var_name, justify="right"))
         
-        # المرحلة
         stages = ["الابتدائية", "المتوسطة", "الإعدادية", "جامعي"]
         cb_stage = ttk.Combobox(form_frame, textvariable=self.var_stage, values=stages, state="readonly", justify="right")
         add_row("المرحلة الدراسية", cb_stage)
         
-        # المدرسة
         add_row("المدرسة/الجامعة", ttk.Entry(form_frame, textvariable=self.var_school, justify="right"))
         
-        # الفاصل
         ttk.Separator(form_frame).grid(row=self.row_idx, column=0, columnspan=2, sticky="ew", pady=15)
         self.row_idx += 1
         
-        # الكفالة
         add_row("مبلغ الكفالة", ttk.Entry(form_frame, textvariable=self.var_monthly_amount, justify="right"))
 
-        # الأزرار (في الأسفل)
+        # الأزرار (مطابقة لشاشة الأيتام)
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=self.row_idx, column=0, columnspan=2, pady=20)
         
-        # الترتيب: جديد، حفظ، حذف
-        ttk.Button(btn_frame, text="جديد", bootstyle="secondary", width=10, command=self.clear_form).pack(side=LEFT, padx=5)
-        ttk.Button(btn_frame, text="حفظ", bootstyle="success", width=10, command=self.save_student).pack(side=LEFT, padx=5)
-        ttk.Button(btn_frame, text="حذف", bootstyle="danger", width=10, command=self.delete_student).pack(side=LEFT, padx=5)
+        ttk.Button(btn_frame, text="جديد", bootstyle="secondary", width=10, command=self.clear_form).grid(row=0, column=0, padx=5)
+        ttk.Button(btn_frame, text="حفظ", bootstyle="success", width=10, command=self.save_student).grid(row=0, column=1, padx=5)
+        ttk.Button(btn_frame, text="حذف", bootstyle="danger", width=10, command=self.delete_student).grid(row=0, column=2, padx=5)
 
     def load_students(self):
         for item in self.tree.get_children():

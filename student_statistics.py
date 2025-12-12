@@ -12,7 +12,12 @@ class StudentStatisticsScreen(ttk.Frame):
 
     def create_widgets(self):
         # بطاقات ملخص في الأعلى
-        summary_frame = ttk.LabelFrame(self, text="ملخص عام", padding=10)
+        summary_frame = ttk.LabelFrame(
+            self, 
+            text="ملخص عام", 
+            padding=10, 
+            labelanchor="ne"
+        )
         summary_frame.pack(fill="x", padx=10, pady=10)
         
         self.lbl_total = ttk.Label(summary_frame, text="عدد الطلاب الكلي: 0", font=("", 12))
@@ -22,7 +27,12 @@ class StudentStatisticsScreen(ttk.Frame):
         self.lbl_cost.pack(anchor="e", pady=5)
 
         # جدول تفصيلي
-        tree_frame = ttk.LabelFrame(self, text="توزيع الطلاب حسب المرحلة", padding=10)
+        tree_frame = ttk.LabelFrame(
+            self, 
+            text="توزيع الطلاب حسب المرحلة", 
+            padding=10, 
+            labelanchor="ne"
+        )
         tree_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
         self.tree = ttk.Treeview(tree_frame, columns=("stage", "count"), show="headings")
@@ -39,12 +49,12 @@ class StudentStatisticsScreen(ttk.Frame):
         # العدد الكلي
         cur.execute("SELECT COUNT(*) FROM students")
         total = cur.fetchone()[0]
-        self.lbl_total.config(text=f"عدد الطلاب الكلي: {total}")
+        self.lbl_total.config(text=f"عدد الطلاب الكلي : {total}")
         
         # تكلفة الكفالات
         cur.execute("SELECT SUM(monthly_amount) FROM student_sponsorships")
         cost = cur.fetchone()[0] or 0
-        self.lbl_cost.config(text=f"إجمالي الكفالات الشهرية: {cost:,.0f}")
+        self.lbl_cost.config(text=f"إجمالي الكفالات الشهرية : {cost:,.0f}")
         
         # التوزيع حسب المرحلة
         for i in self.tree.get_children(): self.tree.delete(i)

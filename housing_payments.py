@@ -30,8 +30,8 @@ class HousingPaymentsScreen(ttk.Frame):
         # Top
         top = ttk.Frame(self); top.pack(fill="x", padx=10, pady=10)
         
-        ttk.Label(top, text="سنة:\u200f").pack(side="right"); ttk.Entry(top, textvariable=self.var_year, width=5).pack(side="right")
-        ttk.Label(top, text="شهر:\u200f").pack(side="right"); ttk.Combobox(top, textvariable=self.var_month, values=[str(i) for i in range(1,13)], width=4).pack(side="right")
+        ttk.Label(top, text="سنة :\u200f").pack(side="right"); ttk.Entry(top, textvariable=self.var_year, width=5).pack(side="right")
+        ttk.Label(top, text="شهر :\u200f").pack(side="right"); ttk.Combobox(top, textvariable=self.var_month, values=[str(i) for i in range(1,13)], width=4).pack(side="right")
         ttk.Button(top, text="تحميل", command=self.load).pack(side="right", padx=5)
         ttk.Button(top, text="إنشاء دفعات", command=self.create_batch, bootstyle="warning").pack(side="right", padx=5)
 
@@ -42,9 +42,9 @@ class HousingPaymentsScreen(ttk.Frame):
         right = ttk.LabelFrame(main, text="بيانات الدفعة", padding=10)
         right.pack(side="right", fill="y")
         
-        ttk.Label(right, text="المدفوع:\u200f").pack(anchor="ne")
+        ttk.Label(right, text="المدفوع :\u200f").pack(anchor="ne")
         ttk.Entry(right, textvariable=self.var_paid).pack(fill="x")
-        ttk.Label(right, text="الحالة:\u200f").pack(anchor="ne")
+        ttk.Label(right, text="الحالة :\u200f").pack(anchor="ne")
         ttk.Combobox(right, textvariable=self.var_status, values=["مدفوع", "غير مدفوع"]).pack(fill="x")
         ttk.Button(right, text="حفظ", command=self.save, bootstyle="success").pack(fill="x", pady=10)
 
@@ -69,8 +69,8 @@ class HousingPaymentsScreen(ttk.Frame):
         
         # Totals
         t = ttk.Frame(left); t.pack(fill="x")
-        ttk.Label(t, textvariable=self.total_rem).pack(side="left", padx=5); ttk.Label(t, text="المتبقي:").pack(side="left")
-        ttk.Label(t, textvariable=self.total_paid).pack(side="left", padx=5); ttk.Label(t, text="المدفوع:").pack(side="left")
+        ttk.Label(t, textvariable=self.total_rem).pack(side="left", padx=5); ttk.Label(t, text="المتبقي :").pack(side="left")
+        ttk.Label(t, textvariable=self.total_paid).pack(side="left", padx=5); ttk.Label(t, text="المدفوع :").pack(side="left")
 
     def create_batch(self):
         try:

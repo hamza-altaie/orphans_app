@@ -35,7 +35,7 @@ class HousingScreen(ttk.Frame):
         style.configure("Housing.Treeview", rowheight=28)
 
         # ====== 1. الجدول (يسار - العمود 0) ======
-        table_frame = ttk.LabelFrame(self, text="مشاريع السكن", padding=5)
+        table_frame = ttk.LabelFrame(self, text="مشاريع السكن", padding=5, labelanchor="ne")
         table_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         
         # البحث
@@ -63,7 +63,7 @@ class HousingScreen(ttk.Frame):
         self.tree.pack(fill="both", expand=True)
         self.tree_scroll_y.config(command=self.tree.yview)
         
-        self.tree.heading("id", text="ت")
+        self.tree.heading("id", text="رقم")
         self.tree.heading("name", text="المستفيد")
         self.tree.heading("phone", text="الهاتف")
         self.tree.heading("type", text="نوع الدعم")
@@ -80,7 +80,7 @@ class HousingScreen(ttk.Frame):
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
 
         # ====== 2. الفورم (يمين - العمود 1) ======
-        form_frame = ttk.LabelFrame(self, text="بيانات المشروع", padding=10)
+        form_frame = ttk.LabelFrame(self, text="بيانات المشروع", padding=10, labelanchor="ne")
         form_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 10), pady=10)
 
         form_frame.columnconfigure(0, weight=1)

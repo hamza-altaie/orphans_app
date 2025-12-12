@@ -11,14 +11,17 @@ class HousingStatisticsScreen(ttk.Frame):
         self.refresh()
 
     def create_widgets(self):
-        frame = ttk.LabelFrame(self, text="إحصائيات مشاريع السكن", padding=10)
+        
+        frame = ttk.LabelFrame(self, text="إحصائيات مشاريع السكن", padding=10, labelanchor="ne")
         frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         self.lbl_total = ttk.Label(frame, text="...", font=("", 14))
-        self.lbl_total.pack(pady=10)
+        # التعديل: إضافة anchor="e" لمحاذاة النص لليمين
+        self.lbl_total.pack(pady=10, anchor="e")
         
         self.lbl_money = ttk.Label(frame, text="...", font=("", 12))
-        self.lbl_money.pack(pady=5)
+        # التعديل: إضافة anchor="e" لمحاذاة النص لليمين
+        self.lbl_money.pack(pady=5, anchor="e")
         
         self.tree = ttk.Treeview(frame, columns=("type", "count"), show="headings", height=6)
         self.tree.heading("type", text="نوع الدعم")
@@ -33,11 +36,11 @@ class HousingStatisticsScreen(ttk.Frame):
         
         cur.execute("SELECT COUNT(*) FROM housing_beneficiaries")
         total = cur.fetchone()[0]
-        self.lbl_total.config(text=f"إجمالي عدد المشاريع: {total}")
+        self.lbl_total.config(text=f"إجمالي عدد المشاريع : {total}")
         
         cur.execute("SELECT SUM(amount_allocated) FROM housing_beneficiaries")
         money = cur.fetchone()[0] or 0
-        self.lbl_money.config(text=f"إجمالي المبالغ المخصصة: {money:,.0f}")
+        self.lbl_money.config(text=f"إجمالي المبالغ المخصصة : {money:,.0f}")
         
         for i in self.tree.get_children(): self.tree.delete(i)
         cur.execute("SELECT support_type, COUNT(*) FROM housing_beneficiaries GROUP BY support_type")

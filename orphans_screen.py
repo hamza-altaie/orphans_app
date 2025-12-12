@@ -111,72 +111,81 @@ class OrphansScreen(ttk.Frame):
         table_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         # ----- شريط البحث والفلترة فوق الجدول -----
-        search_frame = ttk.Frame(table_frame)
-        search_frame.pack(fill="x", padx=5, pady=(0, 5))
+        # إطار خارجي مع عنوان أنيق
+        search_frame = ttk.LabelFrame(table_frame, text="أدوات البحث والفلترة", padding=10)
+        search_frame.pack(fill="x", padx=5, pady=(0, 10))
 
-        search_frame.columnconfigure(0, weight=1)
+        # تقسيم الإطار: عمود للأزرار (يسار) وعمود للمدخلات (يمين)
+        search_frame.columnconfigure(0, weight=0)  # الأزرار
+        search_frame.columnconfigure(1, weight=1)  # مسافة فارغة مرنة
+        search_frame.columnconfigure(2, weight=0)  # المدخلات
 
-        # بحث بالاسم
-        ttk.Label(search_frame, text="بحث بالاسم (يحتوي على):\u200f").grid(
-            row=0, column=3, sticky="e", padx=3, pady=2
-        )
+        # --- أولاً: الحقول (تظهر على اليمين) ---
+        # نستخدم Frame داخلي لترتيب الحقول بجانب بعضها
+        inputs_frame = ttk.Frame(search_frame)
+        inputs_frame.grid(row=0, column=2, sticky="e")
+
+        # 1. بحث بالاسم
+        ttk.Label(inputs_frame, text="الاسم :\u200f").pack(side="right", padx=(5, 0))
         entry_search_name = ttk.Entry(
-            search_frame,
+            inputs_frame,
             textvariable=self.filter_name,
             width=20,
-            justify="right",
+            justify="right"
         )
-        entry_search_name.grid(row=0, column=2, sticky="e", padx=3, pady=2)
+        entry_search_name.pack(side="right", padx=(10, 0))
+        # ربط زر Enter بالبحث
+        entry_search_name.bind("<Return>", lambda e: self.apply_filters())
 
-        # المحافظة
-        ttk.Label(search_frame, text="المحافظة:\u200f").grid(
-            row=1, column=3, sticky="e", padx=3, pady=2
-        )
+        # 2. المحافظة
+        ttk.Label(inputs_frame, text="المحافظة :\u200f").pack(side="right", padx=(5, 0))
         combo_filter_gov = ttk.Combobox(
-            search_frame,
+            inputs_frame,
             textvariable=self.filter_governorate,
             values=GOVERNORATES,
-            width=18,
+            width=12,
             state="readonly",
-            justify="right",
+            justify="right"
         )
-        combo_filter_gov.grid(row=1, column=2, sticky="e", padx=3, pady=2)
+        combo_filter_gov.pack(side="right", padx=(10, 0))
         combo_filter_gov.current(0)
 
-        # حالة اليتيم
-        ttk.Label(search_frame, text="حالة اليتيم:\u200f").grid(
-            row=1, column=1, sticky="e", padx=3, pady=2
-        )
+        # 3. حالة اليتيم
+        ttk.Label(inputs_frame, text="الحالة :\u200f").pack(side="right", padx=(5, 0))
         combo_filter_status = ttk.Combobox(
-            search_frame,
+            inputs_frame,
             textvariable=self.filter_status,
             values=["", "فعّال", "موقوف", "منسحب"],
-            width=14,
+            width=10,
             state="readonly",
-            justify="right",
+            justify="right"
         )
-        combo_filter_status.grid(row=1, column=0, sticky="e", padx=3, pady=2)
+        combo_filter_status.pack(side="right", padx=(0, 0))
         combo_filter_status.current(0)
 
-        # أزرار الفلترة
-        btn_apply_filter = ttk.Button(
-            search_frame,
-            text="تطبيق الفلترة",
-            width=15,
-            command=self.apply_filters,
-        )
-        btn_apply_filter.grid(row=0, column=0, sticky="w", padx=3, pady=2)
+        # --- ثانياً: الأزرار (تظهر على اليسار) ---
+        btns_frame = ttk.Frame(search_frame)
+        btns_frame.grid(row=0, column=0, sticky="w")
 
+        # زر مسح (بتصميم Outline ولون ثانوي)
         btn_clear_filter = ttk.Button(
-            search_frame,
-            text="مسح الفلترة",
-            width=15,
+            btns_frame,
+            text="مسح ✖",
+            bootstyle="secondary-outline",
+            width=8,
             command=self.clear_filters,
         )
-        btn_clear_filter.grid(row=0, column=1, sticky="w", padx=3, pady=2)
+        btn_clear_filter.pack(side="left", padx=(0, 5))
 
-        # Enter في حقل الاسم = تطبيق الفلترة
-        entry_search_name.bind("<Return>", lambda e: self.apply_filters())
+        # زر تطبيق (بتصميم صلب ولون أساسي)
+        btn_apply_filter = ttk.Button(
+            btns_frame,
+            text="بحث 🔍",
+            bootstyle="primary",
+            width=8,
+            command=self.apply_filters,
+        )
+        btn_apply_filter.pack(side="left")
 
         # شريط تمرير
         self.tree_scroll_y = ttk.Scrollbar(table_frame, orient="vertical")
@@ -196,7 +205,7 @@ class OrphansScreen(ttk.Frame):
         self.tree_scroll_y.config(command=self.tree.yview)
 
         # عناوين الأعمدة
-        self.tree.heading("id", text="رقم الييم")
+        self.tree.heading("id", text="رقم ")
         self.tree.heading("name", text="الاسم")
         self.tree.heading("age", text="العمر")
         self.tree.heading("governorate", text="المحافظة")
@@ -417,20 +426,24 @@ class OrphansScreen(ttk.Frame):
         )
         row_idx += 1
 
-        # أزرار التحكم
+       # أزرار التحكم
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=row_idx, column=0, columnspan=2, pady=15)
 
-        ttk.Button(btn_frame, text="جديد", width=10, command=self.clear_form).grid(
-            row=0, column=0, padx=5
-        )
-        ttk.Button(
-            btn_frame, text="حفظ", width=10, command=self.save_orphan_and_sponsorship
-        ).grid(row=0, column=1, padx=5)
-        ttk.Button(btn_frame, text="حذف", width=10, command=self.delete_orphan).grid(
+        # 1. زر "جديد" (الأول من اليمين -> نعطيه العمود 2)
+        ttk.Button(btn_frame, text="جديد", width=10, bootstyle="secondary", command=self.clear_form).grid(
             row=0, column=2, padx=5
         )
 
+        # 2. زر "حفظ" (في الوسط -> نعطيه العمود 1)
+        ttk.Button(
+            btn_frame, text="حفظ", width=10, bootstyle="primary", command=self.save_orphan_and_sponsorship
+        ).grid(row=0, column=1, padx=5)
+
+        # 3. زر "حذف" (الأخير من اليسار -> نعطيه العمود 0)
+        ttk.Button(btn_frame, text="حذف", width=10, bootstyle="danger", command=self.delete_orphan).grid(
+            row=0, column=0, padx=5
+        )
     # ==========================
     #   عمليات قاعدة البيانات
     # ==========================

@@ -36,7 +36,8 @@ class SettingsScreen(ttk.Frame):
             container, 
             text=" إعدادات عامة ", 
             padding=20, 
-            bootstyle="info"
+            bootstyle="info",
+            labelanchor="ne"  # <--- هذا هو الجزء المسؤول عن المحاذاة لليمين
         )
         gen_frame.pack(fill="x", pady=(0, 20))
 
@@ -71,7 +72,7 @@ class SettingsScreen(ttk.Frame):
 
         ttk.Button(
             path_frame, 
-            text="تصفح...", 
+            text="تصفح", 
             command=self.browse_export_dir,
             bootstyle="outline-info",
             width=10
@@ -93,7 +94,8 @@ class SettingsScreen(ttk.Frame):
             container, 
             text=" منطقة الخطر ", 
             padding=20, 
-            bootstyle="danger"
+            bootstyle="danger",
+            labelanchor="ne"  # <--- هذا السطر المسؤول عن المحاذاة لليمين
         )
         danger_frame.pack(fill="x", pady=10)
 
@@ -107,7 +109,7 @@ class SettingsScreen(ttk.Frame):
         # زر تصفير المصنع
         ttk.Button(
             danger_frame,
-            text="حذف كافة البيانات (تصفير المصنع)",
+            text="حذف كافة البيانات (تصفير قاعدة البيانات)",
             bootstyle="danger",
             width=35,
             command=self.reset_factory
@@ -115,7 +117,7 @@ class SettingsScreen(ttk.Frame):
 
         ttk.Label(
             danger_frame,
-            text="سيقوم هذا الإجراء بحذف جميع الأيتام والدفعات وإعادة العداد إلى 1.",
+            text="سيقوم هذا الإجراء بحذف جميع البيانات وإعادة العداد إلى 1",
             font=("Segoe UI", 9),
             bootstyle="secondary"
         ).pack()

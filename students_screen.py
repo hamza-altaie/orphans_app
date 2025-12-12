@@ -71,7 +71,7 @@ class StudentsScreen(ttk.Frame):
         self.tree.pack(expand=True, fill="both")
         self.tree_scroll_y.config(command=self.tree.yview)
 
-        self.tree.heading("id", text="ت")
+        self.tree.heading("id", text="رقم")
         self.tree.heading("name", text="الاسم")
         self.tree.heading("phone", text="الهاتف")
         self.tree.heading("stage", text="المرحلة")

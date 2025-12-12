@@ -38,6 +38,8 @@ Source: "D:\my app\orphans_app\dist\OrphansApp.exe"; DestDir: "{app}"; Flags: ig
 ; 2. نسخ ملف الأيقونة إلى مجلد التثبيت (مهم جداً لظهور الأيقونة في الاختصارات)
 Source: "D:\my app\orphans_app\logo.ico"; DestDir: "{app}"; Flags: ignoreversion
 
+Source: "D:\my app\orphans_app\logo.png"; DestDir: "{app}"; Flags: ignoreversion
+
 ; ملف الإعدادات
 Source: "D:\my app\orphans_app\app_settings.ini"; DestDir: "{commonappdata}\SponsorshipSystem"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall; Permissions: users-modify
 

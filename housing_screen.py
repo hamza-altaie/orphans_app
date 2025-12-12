@@ -1,6 +1,6 @@
 # housing_screen.py
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from ttkbootstrap.constants import *
 import sqlite3
 
@@ -83,6 +83,17 @@ class HousingScreen(ttk.Frame):
         self.tree.column("amount", width=80, anchor="center")
         
         self.tree.bind("<<TreeviewSelect>>", self.on_select)
+
+
+
+        # ---- أزرار التصدير ----
+        export_frame = ttk.Frame(table_frame)
+        export_frame.pack(fill="x", padx=5, pady=(5, 0))
+
+        ttk.Button(export_frame, text="Excel تصدير", command=self.export_to_excel, width=15).pack(side="right", padx=(5, 0))
+        ttk.Button(export_frame, text="PDF تصدير", command=self.export_to_pdf, width=15).pack(side="right", padx=(5, 0))
+
+
 
         # ====== 2. الفورم (يمين - العمود 1) ======
         form_frame = ttk.LabelFrame(self, text="بيانات المشروع", padding=10, labelanchor="ne")
@@ -253,6 +264,150 @@ class HousingScreen(ttk.Frame):
         self.var_status.set("")
         self.notes_text.delete("1.0", tk.END)
         self.tree.selection_remove(self.tree.selection())
+        
 
+
+    # ==========================
+    #   التصدير إلى Excel / PDF
+    # ==========================
+    def _collect_current_rows(self):
+        rows = []
+        for iid in self.tree.get_children():
+            # values = (id, name, phone, type, status, amount)
+            values = self.tree.item(iid)["values"]
+            if values:
+                rows.append(values)
+        return rows
+
+    def export_to_excel(self):
+        rows = self._collect_current_rows()
+        if not rows:
+            messagebox.showinfo("معلومة", "لا توجد بيانات.")
+            return
+
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Alignment
+        except ImportError:
+            messagebox.showerror("خطأ", "مكتبة openpyxl غير مثبتة.")
+            return
+
+        from tkinter import filedialog
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx", filetypes=[("Excel Files", "*.xlsx")],
+            title="حفظ تقرير السكن", initialfile="تقرير_مشاريع_السكن.xlsx"
+        )
+        if not file_path: return
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "مشاريع السكن"
+        
+        ws.append(["رقم", "المستفيد", "الهاتف", "نوع الدعم", "الحالة", "المبلغ"])
+        
+        total = 0.0
+        for r in rows:
+            try: amt = float(r[5] or 0)
+            except: amt = 0.0
+            total += amt
+            ws.append([r[0], r[1], r[2], r[3], r[4], amt])
+
+        ws.append(["", "", "", "", "المجموع", total])
+
+        for row in ws.iter_rows():
+            for cell in row:
+                cell.alignment = Alignment(horizontal='right')
+        
+        try:
+            wb.save(file_path)
+            messagebox.showinfo("تم", "تم التصدير بنجاح.")
+        except Exception as e:
+            messagebox.showerror("خطأ", str(e))
+
+    def export_to_pdf(self):
+        rows = self._collect_current_rows()
+        if not rows: return
+
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+            import arabic_reshaper
+            from bidi.algorithm import get_display
+        except ImportError:
+            messagebox.showerror("خطأ", "مكتبات PDF غير مثبتة.")
+            return
+
+        font_name = "Helvetica"
+        for p in [r"C:\Windows\Fonts\arial.ttf", r"C:\Windows\Fonts\tahoma.ttf"]:
+            try:
+                pdfmetrics.registerFont(TTFont("ArabicFont", p))
+                font_name = "ArabicFont"
+                break
+            except: continue
+
+        def ar(text):
+            if not text: return ""
+            try: return get_display(arabic_reshaper.reshape(str(text)))
+            except: return str(text)
+
+        from tkinter import filedialog
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")],
+            title="حفظ تقرير السكن", initialfile="تقرير_مشاريع_السكن.pdf"
+        )
+        if not file_path: return
+
+        c = canvas.Canvas(file_path, pagesize=A4)
+        w, h = A4
+        
+        c.setFont(font_name, 16)
+        c.drawRightString(w-50, h-50, ar("تقرير مشاريع السكن"))
+        
+        # الإحداثيات
+        y = h - 80
+        x_id = w - 40
+        x_name = w - 80
+        x_phone = w - 200
+        x_type = w - 300
+        x_status = w - 380
+        x_amount = w - 460
+
+        def draw_header():
+            nonlocal y
+            c.setFont(font_name, 10)
+            c.drawRightString(x_id, y, ar("رقم"))
+            c.drawRightString(x_name, y, ar("المستفيد"))
+            c.drawRightString(x_phone, y, ar("الهاتف"))
+            c.drawRightString(x_type, y, ar("النوع"))
+            c.drawRightString(x_status, y, ar("الحالة"))
+            c.drawRightString(x_amount, y, ar("المبلغ"))
+            y -= 10
+            c.line(40, y, w-40, y)
+            y -= 20
+
+        draw_header()
+
+        for r in rows:
+            if y < 50:
+                c.showPage()
+                y = h - 50
+                draw_header()
+            
+            # r = (id, name, phone, type, status, amount)
+            c.drawRightString(x_id, y, str(r[0]))
+            c.drawRightString(x_name, y, ar(r[1]))
+            c.drawRightString(x_phone, y, str(r[2]))
+            c.drawRightString(x_type, y, ar(r[3]))
+            c.drawRightString(x_status, y, ar(r[4]))
+            c.drawRightString(x_amount, y, str(r[5]))
+            y -= 20
+
+        try:
+            c.save()
+            messagebox.showinfo("تم", "تم تصدير ملف PDF بنجاح.")
+        except Exception as e:
+            messagebox.showerror("خطأ", str(e))    
 
         

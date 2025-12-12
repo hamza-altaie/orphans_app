@@ -139,11 +139,11 @@ class SettingsScreen(ttk.Frame):
 
     # --- دوال تصفير البيانات ---
     def reset_factory(self):
-        """دالة لحذف كل البيانات وتصفير العدادات"""
+        """دالة لحذف كل البيانات وتصفير العدادات لكافة الأنظمة"""
         
         confirm1 = messagebox.askyesno(
             "تحذير هام", 
-            "هل أنت متأكد أنك تريد حذف جميع البيانات؟\n\nلا يمكن استرجاع البيانات بعد الحذف!"
+            "هل أنت متأكد أنك تريد حذف جميع البيانات من كل الأنظمة؟\n(الأيتام، الطلاب، المشاريع)\n\nلا يمكن استرجاع البيانات بعد الحذف!"
         )
         if not confirm1:
             return
@@ -162,24 +162,35 @@ class SettingsScreen(ttk.Frame):
 
             cursor = self.conn.cursor()
 
-            # 2. تنفيذ الحذف
+            # 2. حذف بيانات الأيتام
             cursor.execute("DELETE FROM payments")
             cursor.execute("DELETE FROM sponsorships")
             cursor.execute("DELETE FROM orphans")
             
-            # 3. تصفير العداد (مهم جداً ليعود الرقم 1)
+            # 3. حذف بيانات الطلاب
+            cursor.execute("DELETE FROM student_payments")
+            cursor.execute("DELETE FROM student_sponsorships")
+            cursor.execute("DELETE FROM students")
+
+            # 4. حذف بيانات مشاريع السكن
+            cursor.execute("DELETE FROM housing_payments")
+            cursor.execute("DELETE FROM housing_beneficiaries") # <--- تم التصحيح هنا
+            
+            # 5. تصفير العدادات (مهم جداً ليعود الرقم 1)
             cursor.execute("DELETE FROM sqlite_sequence")
 
             self.conn.commit()
             
-            # 4. رسالة نجاح وإغلاق البرنامج
+            # 6. رسالة نجاح وإغلاق البرنامج
             messagebox.showinfo(
                 "نجاح", 
-                "تم حذف جميع البيانات وتصفير النظام بنجاح.\n\nسيتم إغلاق البرنامج الآن، يرجى إعادة تشغيله."
+                "تم تصفير النظام بالكامل (أيتام، طلاب، مشاريع).\n\nسيتم إغلاق البرنامج الآن، يرجى إعادة تشغيله."
             )
             
-            # هذا الأمر سيغلق البرنامج بالكامل
+            # إغلاق البرنامج بالكامل
             self.quit()
 
         except Exception as e:
-            messagebox.showerror("خطأ", f"حدث خطأ أثناء التصفير:\n{e}")
+            # في حال وجود خطأ (مثلاً جدول غير موجود)، نكمل ونظهر رسالة
+            self.conn.rollback() # تراجع عن التغييرات لتجنب مشاكل جزئية
+            messagebox.showerror("خطأ", f"حدث خطأ أثناء التصفير:\n{e}\n\nتأكد أن أسماء الجداول صحيحة في الكود.")

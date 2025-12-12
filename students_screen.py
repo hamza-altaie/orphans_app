@@ -35,7 +35,12 @@ class StudentsScreen(ttk.Frame):
         text_widget.tag_configure("right", justify="right")
         text_widget.tag_add("right", "1.0", "end")
 
+    def _validate_number(self, val):
+        """السماح فقط بالأرقام أو النص الفارغ"""
+        return val == "" or val.isdigit()    
+
     def create_widgets(self):
+        vcmd = (self.register(self._validate_number), '%P')
         style = ttk.Style(self)
         style.configure("Students.Treeview", rowheight=28)
 
@@ -104,7 +109,7 @@ class StudentsScreen(ttk.Frame):
         # الحقول
         add_row("رقم الملف", ttk.Entry(form_frame, textvariable=self.var_id, state="readonly", justify="right"))
         add_row("الاسم الثلاثي", ttk.Entry(form_frame, textvariable=self.var_name, justify="right", font=("Arial", 11)))
-        add_row("رقم الهاتف", ttk.Entry(form_frame, textvariable=self.var_phone, justify="right"))
+        add_row("رقم الهاتف", ttk.Entry(form_frame, textvariable=self.var_phone, justify="right", validate="key", validatecommand=vcmd))
         
         stages = ["الابتدائية", "المتوسطة", "الإعدادية", "جامعي"]
         cb_stage = ttk.Combobox(form_frame, textvariable=self.var_stage, values=stages, state="readonly", justify="right")
@@ -115,7 +120,7 @@ class StudentsScreen(ttk.Frame):
         ttk.Separator(form_frame).grid(row=self.row_idx, column=0, columnspan=2, sticky="ew", pady=10)
         self.row_idx += 1
         
-        add_row("مبلغ الكفالة", ttk.Entry(form_frame, textvariable=self.var_monthly_amount, justify="right"))
+        add_row("مبلغ الكفالة", ttk.Entry(form_frame, textvariable=self.var_monthly_amount, justify="right", validate="key", validatecommand=vcmd))
 
         # الملاحظات
         self.notes_text = tk.Text(form_frame, width=35, height=4, wrap="word")

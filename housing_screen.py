@@ -30,7 +30,12 @@ class HousingScreen(ttk.Frame):
         text_widget.tag_configure("right", justify="right")
         text_widget.tag_add("right", "1.0", "end")
 
+    def _validate_number(self, val):
+        """السماح فقط بالأرقام أو النص الفارغ"""
+        return val == "" or val.isdigit()    
+
     def create_widgets(self):
+        vcmd = (self.register(self._validate_number), '%P')
         style = ttk.Style(self)
         style.configure("Housing.Treeview", rowheight=28)
 
@@ -95,12 +100,11 @@ class HousingScreen(ttk.Frame):
 
         add_row("رقم الملف", ttk.Entry(form_frame, textvariable=self.var_id, state="readonly", justify="right"))
         add_row("المستفيد", ttk.Entry(form_frame, textvariable=self.var_name, justify="right", font=("Arial", 11)))
-        add_row("رقم الهاتف", ttk.Entry(form_frame, textvariable=self.var_phone, justify="right"))
+        add_row("رقم الهاتف", ttk.Entry(form_frame, textvariable=self.var_phone, justify="right", validate="key", validatecommand=vcmd))
         
         add_row("نوع الدعم", ttk.Combobox(form_frame, textvariable=self.var_type, values=["بناء", "ترميم", "إيجار"], state="readonly", justify="right"))
         add_row("حالة المشروع", ttk.Combobox(form_frame, textvariable=self.var_status, values=["قيد الدراسة", "جاري التنفيذ", "مكتمل"], state="readonly", justify="right"))
-        add_row("المبلغ التقديري", ttk.Entry(form_frame, textvariable=self.var_amount, justify="right"))
-
+        add_row("المبلغ التقديري", ttk.Entry(form_frame, textvariable=self.var_amount, justify="right", validate="key", validatecommand=vcmd))
         # الملاحظات
         self.notes_text = tk.Text(form_frame, width=35, height=4, wrap="word")
         self.notes_text.grid(row=self.row_idx, column=0, sticky="ew", pady=4, padx=(0, 5))

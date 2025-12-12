@@ -65,7 +65,7 @@ class MainApp(ttk.Window):
         dash_frame = ttk.Frame(self.main_container, padding=40)
         dash_frame.pack(fill="both", expand=True)
 
-        ttk.Label(dash_frame, text="مرحباً بك في النظام المتكامل", font=("Segoe UI", 24, "bold"), bootstyle="dark").pack(pady=(0, 30))
+        ttk.Label(dash_frame, text="نظام إدارة الكفالات والرعاية الاجتماعية", font=("Segoe UI", 24, "bold"), bootstyle="dark").pack(pady=(0, 30))
 
         # منطقة البطاقات
         cards_frame = ttk.Frame(dash_frame)

@@ -112,7 +112,13 @@ class OrphansScreen(ttk.Frame):
 
         # ----- شريط البحث والفلترة فوق الجدول -----
         # إطار خارجي مع عنوان أنيق
-        search_frame = ttk.LabelFrame(table_frame, text="أدوات البحث والفلترة", padding=10)
+        # التعديل: إضافة labelanchor="ne"
+        search_frame = ttk.LabelFrame(
+            table_frame, 
+            text="أدوات البحث والفلترة", 
+            padding=10, 
+            labelanchor="ne"  # <--- هذا هو الجزء المسؤول عن المحاذاة لليمين
+        )
         search_frame.pack(fill="x", padx=5, pady=(0, 10))
 
         # تقسيم الإطار: عمود للأزرار (يسار) وعمود للمدخلات (يمين)

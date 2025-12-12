@@ -255,8 +255,12 @@ class MainApp(ttk.Window):
         # اسم النظام
         ttk.Label(about_frame, text="نظام كفالة الأيتام والرعاية", font=("Segoe UI", 22, "bold")).pack(pady=5)
         ttk.Label(about_frame, text="Orphans & Care Sponsorship System", font=("Segoe UI", 16), bootstyle="secondary").pack(pady=(0, 20))
+        ttk.Label(about_frame, text="الإصدار: 1.0", font=("Segoe UI", 12, "bold"), bootstyle="info").pack(pady=(0, 20))
         
         ttk.Separator(about_frame).pack(fill="x", pady=20)
+
+
+        
         
         # معلومات المطور
         ttk.Label(about_frame, text="تم التطوير بواسطة", font=("Segoe UI", 12)).pack()
@@ -264,6 +268,9 @@ class MainApp(ttk.Window):
         # الاسم عربي وانكليزي
         developer_text = "Hamza Altaie  |  حمزة الطائي"
         ttk.Label(about_frame, text=developer_text, font=("Segoe UI", 18, "bold"), bootstyle="success").pack(pady=10)
+
+
+
         
         # التواصل
         ttk.Label(about_frame, text="للتواصل : 07766900989", font=("Segoe UI", 12)).pack(pady=5)

@@ -118,8 +118,11 @@ class HousingScreen(ttk.Frame):
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=self.row_idx, column=0, columnspan=2, pady=20)
         
+        # ترتيب الأزرار: جديد (يمين)، حفظ (وسط)، حذف (يسار)
         ttk.Button(btn_frame, text="جديد", bootstyle="secondary", width=10, command=self.clear).grid(row=0, column=2, padx=5)
         ttk.Button(btn_frame, text="حفظ", bootstyle="warning", width=10, command=self.save).grid(row=0, column=1, padx=5)
+        # زر الحذف الجديد
+        ttk.Button(btn_frame, text="حذف", bootstyle="danger", width=10, command=self.delete_housing).grid(row=0, column=0, padx=5)
 
     def load_data(self):
         for row in self.tree.get_children(): self.tree.delete(row)
@@ -157,9 +160,12 @@ class HousingScreen(ttk.Frame):
             self._apply_right_tag(self.notes_text)
 
     def save(self):
-        if not self.var_name.get(): return
-        
+        # 1. التحقق من وجود الاسم وإظهار تنبيه إذا كان فارغاً
         name = self.var_name.get().strip()
+        if not name:
+            messagebox.showwarning("تنبيه", "يرجى إدخال اسم المستفيد")
+            return
+        
         phone = self.var_phone.get()
         typ = self.var_type.get()
         status = self.var_status.get()
@@ -169,25 +175,74 @@ class HousingScreen(ttk.Frame):
             amount = 0.0
         notes = self.notes_text.get("1.0", tk.END).strip()
 
-        cursor = self.conn.cursor()
-        
-        # ملاحظة: يتم تحديث الحقول الأساسية فقط هنا للتبسيط، يمكن إضافة المحافظة والعنوان للفورم إذا لزم
-        if self.var_id.get():
-            uid = self.var_id.get()
-            cursor.execute("""
-                UPDATE housing_beneficiaries 
-                SET name=?, phone=?, support_type=?, amount_allocated=?, project_status=?, notes=? 
-                WHERE id=?
-            """, (name, phone, typ, amount, status, notes, uid))
-        else:
-            cursor.execute("""
-                INSERT INTO housing_beneficiaries (name, phone, support_type, amount_allocated, project_status, notes) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (name, phone, typ, amount, status, notes))
+        # 2. استخدام try...except لاكتشاف الأخطاء
+        try:
+            cursor = self.conn.cursor()
             
-        self.conn.commit()
-        self.load_data()
-        self.clear()
+            if self.var_id.get():
+                # تحديث
+                uid = self.var_id.get()
+                cursor.execute("""
+                    UPDATE housing_beneficiaries 
+                    SET name=?, phone=?, support_type=?, amount_allocated=?, project_status=?, notes=? 
+                    WHERE id=?
+                """, (name, phone, typ, amount, status, notes, uid))
+            else:
+                # إضافة جديد
+                cursor.execute("""
+                    INSERT INTO housing_beneficiaries (name, phone, support_type, amount_allocated, project_status, notes) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (name, phone, typ, amount, status, notes))
+            
+            self.conn.commit()
+            self.load_data()
+            self.clear()
+            
+            # 3. إظهار رسالة النجاح
+            messagebox.showinfo("نجاح", "تم حفظ البيانات بنجاح")
+            
+        except Exception as e:
+            # في حال وجود خطأ في قاعدة البيانات
+            messagebox.showerror("خطأ", f"حدث خطأ أثناء الحفظ:\n{e}")
+
+
+
+    def delete_housing(self):
+        # 1. التحقق من اختيار مشروع للحذف
+        uid = self.var_id.get()
+        if not uid:
+            messagebox.showwarning("تنبيه", "يرجى اختيار مشروع من الجدول أولاً لحذفه")
+            return
+
+        # 2. رسالة تأكيد
+        confirm = messagebox.askyesno(
+            "تأكيد الحذف", 
+            "هل أنت متأكد من حذف هذا المشروع وكافة بياناته؟\n(لا يمكن التراجع عن هذا الإجراء)"
+        )
+        if not confirm:
+            return
+
+        try:
+            cursor = self.conn.cursor()
+            
+            # 3. حذف الدفعات المرتبطة أولاً (لتجنب مشاكل بقايا البيانات)
+            cursor.execute("DELETE FROM housing_payments WHERE housing_id=?", (uid,))
+            
+            # 4. حذف المشروع نفسه
+            cursor.execute("DELETE FROM housing_beneficiaries WHERE id=?", (uid,))
+            
+            self.conn.commit()
+            
+            # 5. تحديث الواجهة
+            self.load_data() # تحديث الجدول
+            self.clear()     # تفريغ الحقول
+            
+            messagebox.showinfo("نجاح", "تم حذف المشروع بنجاح")
+            
+        except Exception as e:
+            messagebox.showerror("خطأ", f"حدث خطأ أثناء الحذف:\n{e}")     
+            
+               
 
     def clear(self):
         self.var_id.set("")
@@ -198,3 +253,6 @@ class HousingScreen(ttk.Frame):
         self.var_status.set("")
         self.notes_text.delete("1.0", tk.END)
         self.tree.selection_remove(self.tree.selection())
+
+
+        

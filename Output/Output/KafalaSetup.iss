@@ -2,22 +2,25 @@
 ; إعدادات البرنامج الأساسية
 ;-----------------------------
 [Setup]
-; --- الاسم الجديد للنظام ---
 AppName=نظام الكفالة والرعاية المتكامل
 AppVersion=1.0
-AppPublisher=Black Marlin
-; المجلد الافتراضي للتثبيت
-DefaultDirName={autopf}\SponsorshipSystem
-; اسم المجلد في قائمة ابدأ
+AppPublisher=Hamza Altaie
+DefaultDirName={autopf}\SmartKafala
 DefaultGroupName=نظام الكفالة والرعاية المتكامل
-; اسم ملف التثبيت الذي سينتج (يفضل بالإنجليزية لتجنب مشاكل التحميل)
-OutputBaseFilename=SponsorshipSystemSetup
+OutputBaseFilename=SmartKafala_Setup
 Compression=lzma2
 SolidCompression=yes
-; طلب صلاحيات المسؤول (مهم للكتابة في Program Files)
 PrivilegesRequired=admin
 WizardStyle=modern
 DisableDirPage=no
+
+; 1. إضافة أيقونة لملف التنصيب (Setup)
+; تأكد أن لديك ملف أيقونة بامتداد .ico في مسار المشروع
+SetupIconFile=D:\my app\orphans_app\logo.ico
+
+; (اختياري) لإضافة صورة جانبية وصورة صغيرة داخل نافذة التثبيت
+; WizardImageFile=D:\my app\orphans_app\side_image.bmp
+; WizardSmallImageFile=D:\my app\orphans_app\small_logo.bmp
 
 ;-----------------------------
 ; دعم اللغة العربية
@@ -29,26 +32,29 @@ Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 ; ملفات البرنامج
 ;-----------------------------
 [Files]
-; 1. ملف البرنامج التنفيذي (من مسارك الحالي)
+; ملف البرنامج التنفيذي
 Source: "D:\my app\orphans_app\dist\OrphansApp.exe"; DestDir: "{app}"; Flags: ignoreversion
 
-; 2. ملف الإعدادات (ينسخ إلى AppData لضمان إمكانية التعديل عليه)
-Source: "{#SourcePath}\app_settings.ini"; DestDir: "{userappdata}\SponsorshipSystem"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall
+; 2. نسخ ملف الأيقونة إلى مجلد التثبيت (مهم جداً لظهور الأيقونة في الاختصارات)
+Source: "D:\my app\orphans_app\logo.ico"; DestDir: "{app}"; Flags: ignoreversion
 
-; 3. (اختياري) إذا كنت تستخدم مجلد _internal
-; Source: "D:\my app\orphans_app\dist\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+; ملف الإعدادات
+Source: "D:\my app\orphans_app\app_settings.ini"; DestDir: "{commonappdata}\SponsorshipSystem"; Flags: ignoreversion onlyifdoesntexist uninsneveruninstall; Permissions: users-modify
 
 ;-----------------------------
 ; الأيقونات والاختصارات
 ;-----------------------------
 [Icons]
-; اختصار قائمة ابدأ بالاسم الجديد
-Name: "{group}\نظام الكفالة والرعاية المتكامل"; Filename: "{app}\OrphansApp.exe"
+; 3. ربط الاختصارات بملف الأيقونة
+; لاحظ إضافة IconFilename في السطرين التاليين
+
+; اختصار قائمة ابدأ
+Name: "{group}\نظام الكفالة والرعاية المتكامل"; Filename: "{app}\OrphansApp.exe"; IconFilename: "{app}\logo.ico"
 ; خيار حذف البرنامج
 Name: "{group}\حذف النظام"; Filename: "{uninstallexe}"
 
-; اختصار سطح المكتب بالاسم الجديد
-Name: "{commondesktop}\نظام الكفالة والرعاية المتكامل"; Filename: "{app}\OrphansApp.exe"; Tasks: desktopicon
+; اختصار سطح المكتب
+Name: "{commondesktop}\نظام الكفالة والرعاية المتكامل"; Filename: "{app}\OrphansApp.exe"; Tasks: desktopicon; IconFilename: "{app}\logo.ico"
 
 ;-----------------------------
 ; مهام إضافية
@@ -62,9 +68,6 @@ Name: "desktopicon"; Description: "إنشاء اختصار على سطح الم�
 [Run]
 Filename: "{app}\OrphansApp.exe"; Description: "تشغيل النظام الآن"; Flags: nowait postinstall skipifsilent
 
-;-----------------------------
-; كود لضمان المسارات (تلقائي)
-;-----------------------------
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);
 begin

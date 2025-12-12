@@ -11,6 +11,10 @@ from orphans_screen import OrphansScreen
 from payments_screen import PaymentsScreen
 from settings_screen import SettingsScreen
 from statistics_screen import StatisticsScreen
+from student_payments import StudentPaymentsScreen
+from student_statistics import StudentStatisticsScreen
+from housing_payments import HousingPaymentsScreen
+from housing_statistics import HousingStatisticsScreen
 
 # استيراد الشاشات الجديدة
 from students_screen import StudentsScreen
@@ -67,21 +71,30 @@ class MainApp(ttk.Window):
         cards_frame = ttk.Frame(dash_frame)
         cards_frame.pack(expand=True, fill="both")
 
-        # الصف الأول: الأنظمة
+        # --- الصف الأول (الأنظمة) ---
         row1 = ttk.Frame(cards_frame)
         row1.pack(pady=15)
 
-        # ترتيب الأزرار لليمين
-        self.create_dash_btn(row1, "دعم السكن", "warning", self.load_housing_system)
-        self.create_dash_btn(row1, "كفالة الطلاب", "success", self.load_students_system)
-        self.create_dash_btn(row1, "كفالة الأيتام", "primary", self.load_orphans_system)
+        # الترتيب: (الكود يقرأ من الأعلى، لكن العرض يبدأ من اليمين)
 
-        # الصف الثاني: الأدوات
+        # 1. كفالة الأيتام (يظهر في الوسط)
+        self.create_dash_btn(row1, "كفالة الأيتام", "primary", self.load_orphans_system)
+        
+        # 2. كفالة الطلاب (يظهر أقصى اليمين - البداية)
+        self.create_dash_btn(row1, "كفالة الطلاب", "success", self.load_students_system)
+        
+        # 3. دعم السكن (يظهر على اليسار)
+        self.create_dash_btn(row1, "دعم السكن", "warning", self.load_housing_system)
+
+        # --- الصف الثاني (الأدوات) ---
         row2 = ttk.Frame(cards_frame)
         row2.pack(pady=15)
 
-        self.create_dash_btn(row2, "حول البرنامج", "info", self.load_about_page)
+        # 4. الإعدادات (يظهر يمين الصف الثاني)
         self.create_dash_btn(row2, "الإعدادات", "secondary", self.load_settings_page)
+
+        # 5. حول البرنامج (يظهر أقصى اليسار - النهاية)
+        self.create_dash_btn(row2, "حول البرنامج", "info", self.load_about_page)
 
         ttk.Label(dash_frame, text="Hamza Altaie © 2025", bootstyle="secondary").pack(side="bottom", pady=20)
 
@@ -160,21 +173,45 @@ class MainApp(ttk.Window):
         self.clear_container()
         self.create_top_nav("نظام كفالة الطلاب", "success")
         
-        # حاوية رئيسية
-        container = ttk.Frame(self.main_container)
-        container.pack(fill="both", expand=True, padx=10, pady=10)
+        notebook = ttk.Notebook(self.main_container, style='Custom.TNotebook')
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # شاشة الطلاب مباشرة
-        StudentsScreen(container, self.conn).pack(fill="both", expand=True)
+        nav = ttk.Frame(self.main_container)
+        nav.pack(before=notebook, fill="x", padx=10)
+        def sw(i): notebook.select(i)
+        
+        ttk.Button(nav, text="سجل الطلاب", command=lambda: sw(0), bootstyle="outline-success").pack(side=RIGHT, padx=2)
+        ttk.Button(nav, text="الدفعات", command=lambda: sw(1), bootstyle="outline-success").pack(side=RIGHT, padx=2)
+        ttk.Button(nav, text="إحصائيات", command=lambda: sw(2), bootstyle="outline-success").pack(side=RIGHT, padx=2)
+
+        # إضافة التبويبات (السجل، الدفعات، الإحصائيات)
+        notebook.add(StudentsScreen(notebook, self.conn))          # 0
+        notebook.add(StudentPaymentsScreen(notebook, self.conn))   # 1
+        notebook.add(StudentStatisticsScreen(notebook, self.conn)) # 2
+        sw(0)
+
 
     def load_housing_system(self):
         self.clear_container()
         self.create_top_nav("نظام دعم السكن", "warning")
         
-        container = ttk.Frame(self.main_container)
-        container.pack(fill="both", expand=True, padx=10, pady=10)
+        notebook = ttk.Notebook(self.main_container, style='Custom.TNotebook')
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
         
-        HousingScreen(container, self.conn).pack(fill="both", expand=True)
+        nav = ttk.Frame(self.main_container)
+        nav.pack(before=notebook, fill="x", padx=10)
+        def sw(i): notebook.select(i)
+        
+        ttk.Button(nav, text="المشاريع", command=lambda: sw(0), bootstyle="outline-warning").pack(side=RIGHT, padx=2)
+        ttk.Button(nav, text="الدفعات", command=lambda: sw(1), bootstyle="outline-warning").pack(side=RIGHT, padx=2)
+        ttk.Button(nav, text="إحصائيات", command=lambda: sw(2), bootstyle="outline-warning").pack(side=RIGHT, padx=2)
+        
+        
+        notebook.add(HousingScreen(notebook, self.conn))           # 0
+        notebook.add(HousingPaymentsScreen(notebook, self.conn))   # 1
+        notebook.add(HousingStatisticsScreen(notebook, self.conn)) # 2
+        
+        sw(0)
 
     def load_settings_page(self):
         self.clear_container()
@@ -194,14 +231,18 @@ class MainApp(ttk.Window):
         about_frame.pack(fill="both", expand=True)
         
         # --- 1. عرض الصورة (الشعار) ---
-        # ملاحظة: يجب أن تضع صورة باسم "logo.png" بجانب ملف main.py
-        # أو قم بتغيير الاسم أدناه ليطابق اسم صورتك
         image_path = "logo.png" 
         
         if os.path.exists(image_path):
             try:
-                # نحفظ الصورة في متغير global أو self حتى لا يحذفها جامع القمامة
+                # تحميل الصورة
                 self.logo_img = ttk.PhotoImage(file=image_path)
+                
+                # === سطر جديد لتصغير الصورة ===
+                # الرقم (5) يعني تصغير الصورة إلى "الخُمس" (1/5) من حجمها الأصلي
+                # غيّر الرقم (مثلاً 2، 4، 8، 10) حتى تصل للحجم المناسب
+                self.logo_img = self.logo_img.subsample(5, 5) 
+                
                 ttk.Label(about_frame, image=self.logo_img).pack(pady=(0, 20))
             except Exception as e:
                 ttk.Label(about_frame, text=f"(خطأ في تحميل الصورة: {e})", bootstyle="danger").pack()

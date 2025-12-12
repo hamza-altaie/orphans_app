@@ -103,4 +103,37 @@ def create_tables(conn: sqlite3.Connection):
         )
     """)
 
+
+    # --- 4. جدول دفعات الطلاب (جديد) ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS student_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            year INTEGER NOT NULL,
+            required_amount REAL,
+            paid_amount REAL,
+            status TEXT,
+            payment_date TEXT,
+            notes TEXT,
+            FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+        )
+    """)
+
+    # --- 5. جدول دفعات السكن (جديد) ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS housing_payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            housing_id INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            year INTEGER NOT NULL,
+            required_amount REAL,
+            paid_amount REAL,
+            status TEXT,
+            payment_date TEXT,
+            notes TEXT,
+            FOREIGN KEY(housing_id) REFERENCES housing_beneficiaries(id) ON DELETE CASCADE
+        )
+    """)
+
     conn.commit()
